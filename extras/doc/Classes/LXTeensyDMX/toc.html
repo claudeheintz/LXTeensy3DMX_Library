@@ -2,7 +2,7 @@
     "http://www.w3.org/TR/1998/REC-html40-19980424/loose.dtd">
 <html><head>
 <meta name="ROBOTS" content="NOINDEX" />
-<title>Documentation for LX8266DMX (LXESP8266UARTDMX.h)</title>
+<title>Documentation for LXTeensyDMX (LXTeensy3DMX.h)</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
 	<meta name="generator" content="HeaderDoc" />
@@ -13,7 +13,7 @@ leftmargin="0" topmargin="0" marginwidth="0"
 marginheight="0">
 <table class="headerdoc_content_table" width="100%" cellpadding=0 cellspacing=0 border=0><tr id="colorbox" height=51 width="100%" bgcolor="#466C9B"><td width="100%">&nbsp;</td></tr><tr><td class="hd_toc_box"><table class="hd_toc_table" border="0" cellpadding="0" cellspacing="2" width="148">
 <tr><td class="toc_leadspace"></td><td colspan="2"><font size="5" color="#330066"><b>Class:</b></font></td></tr>
-<tr><td class="toc_leadspace">&nbsp;</td><td class="disclosure_triangle_td">&nbsp;</td><td class="toc_contents_text"><b><font size="+1">LX8266DMX</font></b></td></tr>
+<tr><td class="toc_leadspace">&nbsp;</td><td class="disclosure_triangle_td">&nbsp;</td><td class="toc_contents_text"><b><font size="+1">LXTeensyDMX</font></b></td></tr>
 <tr><td></td><td colspan="2">
 <!-- headerDoc TOC style: 5 -->
 <div>
@@ -26,20 +26,16 @@ marginheight="0">
 <a href="index.html#HeaderDoc_functions" target=_top>Member Functions</a></td></tr>
 </table>
 <div toc="collapsible" class="collapsible" >
-
-<ul class="tocSubEntryList"><!-- cdobj --><li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/LX8266DMX//()" target="_top">LX8266DMX()</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/LX8266DMX//(uint8_t,uint16_t)" target="_top">LX8266DMX(uint8_t, uint16_t)</a></li>
-</ul><span class="hd_tocAccess">Public</span>
-<ul class="tocSubEntryList"><!-- public --><li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/dmxData/uint8_t*/()" target="_top">dmxData</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/getSlot/uint8_t/(int)" target="_top">getSlot</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/receiveInterruptHandler/void/(uint8_t)" target="_top">receiveInterruptHandler</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/setDataReceivedCallback/void/(LXRecvCallback)" target="_top">setDataReceivedCallback</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/setMaxSlots/void/(int)" target="_top">setMaxSlots</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/setSlot/void/(int,uint8_t)" target="_top">setSlot</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/startInput/void/()" target="_top">startInput</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/startOutput/void/()" target="_top">startOutput</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/stop/void/()" target="_top">stop</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LX8266DMX/txEmptyInterruptHandler/void/()" target="_top">txEmptyInterruptHandler</a></li>
+<span class="hd_tocAccess">Public</span>
+<ul class="tocSubEntryList"><!-- public --><li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/dmxData/uint8_t*/()" target="_top">dmxData</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/getSlot/uint8_t/(int)" target="_top">getSlot</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/setDataReceivedCallback/void/(LXRecvCallback)" target="_top">setDataReceivedCallback</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/setDirectionPin/void/(uint8_t)" target="_top">setDirectionPin</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/setMaxSlots/void/(int)" target="_top">setMaxSlots</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/setSlot/void/(int,uint8_t)" target="_top">setSlot</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/startInput/void/()" target="_top">startInput</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/startOutput/void/()" target="_top">startOutput</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/instm/LXTeensyDMX/stop/void/()" target="_top">stop</a></li>
 </ul></div></div>
 <div toc="section">
 <table class="hd_toc_heading_table" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td class="toc_leadspace" ></td><td class="disclosure_triangle_td" valign="top" align="left" ><a  href="#" class="closed_disclosure_triangle" onclick="disclosure_triangle(this)">&#x25B7;</a></td><td class="disclosure_padding" ></td><td valign="top" colspan="4" class="toc_contents_text" toc="section_link" >
@@ -47,14 +43,9 @@ marginheight="0">
 </table>
 <div toc="collapsible" class="collapsible" >
 <span class="hd_tocAccess">Protected</span>
-<ul class="tocSubEntryList"><!-- private --><li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LX8266DMX/_current_slot" target="_top">_current_slot</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LX8266DMX/_dmx_state" target="_top">_dmx_state</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LX8266DMX/_dmxData" target="_top">_dmxData</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LX8266DMX/_idle_count" target="_top">_idle_count</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LX8266DMX/_interrupt_status" target="_top">_interrupt_status</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LX8266DMX/_receive_callback" target="_top">_receive_callback</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LX8266DMX/_slots" target="_top">_slots</a></li>
-<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LX8266DMX/direction_pin" target="_top">direction_pin</a></li>
+<ul class="tocSubEntryList"><!-- private --><li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXTeensyDMX/_direction_pin" target="_top">_direction_pin</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXTeensyDMX/_dmxData" target="_top">_dmxData</a></li>
+<li class="tocSubEntry"><a href="index.html#//apple_ref/cpp/data/LXTeensyDMX/_interrupt_status" target="_top">_interrupt_status</a></li>
 </ul></div></div>
 <hr class="tocSeparator">
 <h4 class="tocSubheading">Other Reference</h4>

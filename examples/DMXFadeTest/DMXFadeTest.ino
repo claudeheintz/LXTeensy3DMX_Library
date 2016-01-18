@@ -2,27 +2,22 @@
 /*!
     @file     DMXFadeTest.ino
     @author   Claude Heintz
-    @license  BSD (see LXESP8266DMX LICENSE)
-    @copyright 2015 by Claude Heintz
+    @license  BSD (see LXTeensy3DMX LICENSE)
+    @copyright 2016 by Claude Heintz
 
-    Simple Fade test of RESP8266 DMX Driver
+    Simple Fade test of Teensy3 DMX Driver
     @section  HISTORY
 
-    v1.00 - First release
-    v1.01 - Updated for single LX8266DMX class
+    v1.00 - First release6
 */
 /**************************************************************************/
-#include <LXESP8266UARTDMX.h>
+#include <LXTeensy3DMX.h>
+
 
 uint8_t level = 0;
 
 void setup() {
-  pinMode(BUILTIN_LED, OUTPUT);
-  Serial.begin(9600);
-  Serial.setDebugOutput(1); //use uart0 for debugging
-   
-  delay(1000);        //avoid boot print??
-  ESP8266DMX.startOutput();
+  Teensy3DMX.startOutput();
 }
 
 /************************************************************************
@@ -32,8 +27,8 @@ void setup() {
 *************************************************************************/
 
 void loop() {
- ESP8266DMX.setSlot(7,level);
- ESP8266DMX.setSlot(8,level);
+ Teensy3DMX.setSlot(1,level);
+ Teensy3DMX.setSlot(512,level);
  delay(50);
  level++;
 }

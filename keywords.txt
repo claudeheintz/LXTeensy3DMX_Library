@@ -1,11 +1,11 @@
 #######################################
-# Syntax Coloring Map For LXTeensy3DMX
+# Syntax Coloring Map For LXESP8266DMX
 ####################################### 
 # Class
 #######################################
 
-LXTeensyDMX			KEYWORD1
-Teensy3DMX			KEYWORD1
+ESP8266DMX		KEYWORD1
+LX8266DMX		KEYWORD1
 
 #######################################
 # Methods and Functions 

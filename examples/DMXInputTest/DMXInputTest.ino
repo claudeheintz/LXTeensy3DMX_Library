@@ -2,25 +2,26 @@
 /*!
     @file     DMXInputTest.ino
     @author   Claude Heintz
-    @license  BSD (see LXTeensy3DMX LICENSE)
-    @copyright 2016 by Claude Heintz
+    @license  BSD (see LXESP8266DMX LICENSE)
+    @copyright 2015 by Claude Heintz
 
-    Control brightness of LED on PWM_PIN with DMX address 1
+    SControl brightness of LED on GPIO14 with DMX address 1
     @section  HISTORY
 
     v1.00 - First release
+    v1.01 - Updated for single LX8266DMX class
 */
 /**************************************************************************/
-#include <LXTeensy3DMX.h>
+#include <LXESP8266UARTDMX.h>
 
-#define PWM_PIN 6
 int got_dmx = 0;
 
 void setup() {
-  pinMode(PWM_PIN, OUTPUT);
-  Teensy3DMX.setDataReceivedCallback(&gotDMXCallback);
-  Teensy3DMX.startInput();
-  Serial.begin(115200);
+  pinMode(BUILTIN_LED, OUTPUT);
+  pinMode(14, OUTPUT);
+  ESP8266DMX.setDataReceivedCallback(&gotDMXCallback);
+  delay(1000);        //avoid boot print??
+  ESP8266DMX.startInput();
 }
 
 
@@ -33,17 +34,13 @@ void gotDMXCallback(int slots) {
 /************************************************************************
 
   The main loop checks to see if dmx input is available (got_dmx>0)
-  And then reads the level of dimmer 1 to set PWM level of LED
+  And then reads the level of dimmer 1 to set PWM level of LED connected to pin 14
   
 *************************************************************************/
 
 void loop() {
   if ( got_dmx ) {
-    analogWrite(PWM_PIN,Teensy3DMX.getSlot(1));
-    Serial.println("---");
-    Serial.println(Teensy3DMX.getSlot(0));
-    Serial.println(Teensy3DMX.getSlot(1));
-    Serial.println(got_dmx);
-    Serial.println("___");
+    //ESP8266 PWM is 10bit 0-1024
+    analogWrite(14,2*ESP8266DMX.getSlot(1));
   }
 }

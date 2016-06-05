@@ -6,6 +6,8 @@
 
 LXTeensyDMX			KEYWORD1
 Teensy3DMX			KEYWORD1
+Teensy3DMX1			KEYWORD1
+Teensy3DMX2			KEYWORD1
 
 #######################################
 # Methods and Functions 

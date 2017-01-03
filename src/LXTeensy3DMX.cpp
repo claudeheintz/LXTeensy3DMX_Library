@@ -24,10 +24,10 @@
 
 LXTeensyDMX Teensy3DMX;
 
-uint8_t*  _shared_dmx_data;
-uint8_t   _shared_dmx_state;
-uint16_t  _shared_dmx_slot;
-uint16_t  _shared_max_slots = DMX_MIN_SLOTS;
+volatile uint8_t*  _shared_dmx_data;
+volatile uint8_t   _shared_dmx_state;
+volatile uint16_t  _shared_dmx_slot;
+volatile uint16_t  _shared_max_slots = DMX_MIN_SLOTS;
 LXRecvCallback _shared_receive_callback = NULL;
 
 /*********************************************************************

@@ -173,7 +173,7 @@ class LXTeensyDMX {
   	/*!
     * @brief Array of dmx data including start code
    */
-  	uint8_t  _dmxData[DMX_MAX_SLOTS+1];
+	uint8_t  _dmxData[DMX_MAX_SLOTS+1];
 };
 
 extern LXTeensyDMX Teensy3DMX;

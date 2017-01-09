@@ -3,7 +3,7 @@
     @file     LXTeensy3DMX.cpp
     @author   Claude Heintz
     @license  See LXTeensy3DMX.h or http://www.claudeheintzdesign.com/lx/opensource.html
-    @copyright 2016 by Claude Heintz
+    @copyright 2016-2017 by Claude Heintz
     
     DMX Driver for Arduino using USART.
 
@@ -157,7 +157,7 @@ void lx_uart0_status_isr(void)
 
 			case DMX_STATE_BREAK:
 				if ( incoming_byte == 0 ) {						//start code == zero (DMX)
-					_shared_dmx_data[_shared_dmx_slot++] = incoming_byte;
+					_shared_dmx_data[_shared_dmx_slot] = incoming_byte;
 					_shared_dmx_state = DMX_STATE_DATA;
 					_shared_dmx_slot = 1;
 				} else {
@@ -166,7 +166,8 @@ void lx_uart0_status_isr(void)
 				break;
 			
 			case DMX_STATE_DATA:
-				_shared_dmx_data[_shared_dmx_slot++] = incoming_byte;
+				_shared_dmx_data[_shared_dmx_slot] = incoming_byte;
+				_shared_dmx_slot++;
 				if ( _shared_dmx_slot > DMX_MAX_SLOTS ) {
 					_shared_dmx_state = DMX_STATE_IDLE;			// go to idle, wait for next break
 				}

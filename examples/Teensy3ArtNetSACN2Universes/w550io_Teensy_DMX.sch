@@ -11008,6 +11008,8 @@ COM-10820 (clear)&lt;br&gt;</description>
 <sheets>
 <sheet>
 <plain>
+<text x="-15.24" y="40.64" size="1.778" layer="91" rot="R90">Reverse 4 &amp; 5 when
+used for DMX input</text>
 </plain>
 <instances>
 <instance part="W550IO" gate="G$1" x="152.4" y="7.62" smashed="yes" rot="R180">
@@ -11053,7 +11055,7 @@ COM-10820 (clear)&lt;br&gt;</description>
 <attribute name="NAME" x="-8.89" y="19.685" size="1.778" layer="95" rot="R180"/>
 <attribute name="VALUE" x="-8.89" y="40.64" size="1.778" layer="96" rot="R180"/>
 </instance>
-<instance part="R5" gate="G$1" x="43.18" y="25.4"/>
+<instance part="R5" gate="G$1" x="38.1" y="38.1" rot="R90"/>
 <instance part="R6" gate="G$1" x="48.26" y="53.34" rot="R270"/>
 <instance part="R7" gate="G$1" x="38.1" y="10.16" rot="R270"/>
 <instance part="R8" gate="G$1" x="45.72" y="73.66" smashed="yes" rot="R270">
@@ -11249,13 +11251,14 @@ COM-10820 (clear)&lt;br&gt;</description>
 <junction x="147.32" y="83.82"/>
 <junction x="147.32" y="91.44"/>
 <label x="160.02" y="91.44" size="1.778" layer="95"/>
-<wire x1="78.74" y1="78.74" x2="78.74" y2="25.4" width="0.1524" layer="91"/>
-<wire x1="78.74" y1="25.4" x2="71.12" y2="25.4" width="0.1524" layer="91"/>
-<junction x="78.74" y="78.74"/>
 <pinref part="C5" gate="G$1" pin="+"/>
 <junction x="104.14" y="91.44"/>
 <pinref part="C6" gate="G$1" pin="+"/>
 <junction x="109.22" y="91.44"/>
+<wire x1="78.74" y1="25.4" x2="78.74" y2="78.74" width="0.1524" layer="91"/>
+<junction x="78.74" y="78.74"/>
+<pinref part="OK4" gate="A" pin="VCC"/>
+<wire x1="78.74" y1="25.4" x2="73.66" y2="25.4" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -11302,6 +11305,10 @@ COM-10820 (clear)&lt;br&gt;</description>
 <pinref part="OK3" gate="A" pin="GND"/>
 <wire x1="50.8" y1="5.08" x2="50.8" y2="10.16" width="0.1524" layer="91"/>
 <wire x1="50.8" y1="10.16" x2="33.02" y2="10.16" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="22.86" x2="48.26" y2="22.86" width="0.1524" layer="91"/>
+<pinref part="OK4" gate="A" pin="C"/>
+<wire x1="50.8" y1="17.78" x2="48.26" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="48.26" y1="22.86" x2="48.26" y2="17.78" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="VCC" class="0">
@@ -11322,12 +11329,10 @@ COM-10820 (clear)&lt;br&gt;</description>
 <pinref part="C3" gate="G$1" pin="2"/>
 <junction x="43.18" y="68.58"/>
 <junction x="43.18" y="58.42"/>
-<pinref part="OK4" gate="A" pin="C"/>
 <wire x1="43.18" y1="38.1" x2="43.18" y2="30.48" width="0.1524" layer="91"/>
 <wire x1="43.18" y1="30.48" x2="43.18" y2="20.32" width="0.1524" layer="91"/>
 <wire x1="43.18" y1="20.32" x2="43.18" y2="17.78" width="0.1524" layer="91"/>
 <wire x1="43.18" y1="17.78" x2="43.18" y2="-2.54" width="0.1524" layer="91"/>
-<wire x1="50.8" y1="17.78" x2="38.1" y2="17.78" width="0.1524" layer="91"/>
 <pinref part="OK3" gate="A" pin="VCC"/>
 <wire x1="38.1" y1="17.78" x2="43.18" y2="17.78" width="0.1524" layer="91"/>
 <wire x1="50.8" y1="-2.54" x2="43.18" y2="-2.54" width="0.1524" layer="91"/>
@@ -11341,7 +11346,6 @@ COM-10820 (clear)&lt;br&gt;</description>
 <junction x="43.18" y="38.1"/>
 <pinref part="R7" gate="G$1" pin="1"/>
 <wire x1="38.1" y1="15.24" x2="38.1" y2="17.78" width="0.1524" layer="91"/>
-<junction x="38.1" y="17.78"/>
 <pinref part="R8" gate="G$1" pin="1"/>
 <wire x1="45.72" y1="78.74" x2="48.26" y2="78.74" width="0.1524" layer="91"/>
 <junction x="48.26" y="78.74"/>
@@ -11441,19 +11445,11 @@ COM-10820 (clear)&lt;br&gt;</description>
 <junction x="38.1" y="2.54"/>
 </segment>
 </net>
-<net name="N$1" class="0">
-<segment>
-<pinref part="OK4" gate="A" pin="A"/>
-<pinref part="R5" gate="G$1" pin="2"/>
-<wire x1="48.26" y1="25.4" x2="50.8" y2="25.4" width="0.1524" layer="91"/>
-</segment>
-</net>
 <net name="N$12" class="0">
 <segment>
-<pinref part="R5" gate="G$1" pin="1"/>
-<wire x1="38.1" y1="25.4" x2="38.1" y2="43.18" width="0.1524" layer="91"/>
 <pinref part="IC2" gate="G$1" pin="RO"/>
 <wire x1="38.1" y1="43.18" x2="25.4" y2="43.18" width="0.1524" layer="91"/>
+<pinref part="R5" gate="G$1" pin="2"/>
 </segment>
 </net>
 <net name="N$13" class="0">
@@ -11575,9 +11571,25 @@ COM-10820 (clear)&lt;br&gt;</description>
 <wire x1="162.56" y1="58.42" x2="162.56" y2="60.96" width="0.1524" layer="91"/>
 </segment>
 </net>
+<net name="N$1" class="0">
+<segment>
+<pinref part="R5" gate="G$1" pin="1"/>
+<wire x1="48.26" y1="33.02" x2="38.1" y2="33.02" width="0.1524" layer="91"/>
+<wire x1="48.26" y1="33.02" x2="48.26" y2="25.4" width="0.1524" layer="91"/>
+<pinref part="OK4" gate="A" pin="A"/>
+<wire x1="48.26" y1="25.4" x2="50.8" y2="25.4" width="0.1524" layer="91"/>
+<wire x1="50.8" y1="25.4" x2="53.34" y2="25.4" width="0.1524" layer="91"/>
+</segment>
+</net>
 </nets>
 </sheet>
 </sheets>
 </schematic>
 </drawing>
+<compatibility>
+<note version="6.3" minversion="6.2.2" severity="warning">
+Since Version 6.2.2 text objects can contain more than one line,
+which will not be processed correctly with this version.
+</note>
+</compatibility>
 </eagle>

@@ -10986,14 +10986,14 @@ COM-10820 (clear)&lt;br&gt;</description>
 <part name="R1" library="adafruit" deviceset="R-US_" device="0204/5" value="330Ω"/>
 <part name="R2" library="adafruit" deviceset="R-US_" device="0204/5" value="330Ω"/>
 <part name="R3" library="adafruit" deviceset="R-US_" device="0204/5" value="330Ω"/>
-<part name="R4" library="adafruit" deviceset="R-US_" device="0204/5" value="1k"/>
+<part name="R4" library="adafruit" deviceset="R-US_" device="0204/5" value="10k"/>
 <part name="IC1" library="maxim" deviceset="MAX481CPA" device=""/>
 <part name="IC2" library="maxim" deviceset="MAX481CPA" device=""/>
 <part name="DMXOUT" library="adafruit" deviceset="PINHD-1X6" device="B" value="J3"/>
 <part name="R5" library="adafruit" deviceset="R-US_" device="0204/5" value="470Ω"/>
-<part name="R6" library="adafruit" deviceset="R-US_" device="0204/5" value="1k"/>
-<part name="R7" library="adafruit" deviceset="R-US_" device="0204/5" value="1k"/>
-<part name="R8" library="adafruit" deviceset="R-US_" device="0204/5" value="1k"/>
+<part name="R6" library="adafruit" deviceset="R-US_" device="0204/5" value="3.3k"/>
+<part name="R7" library="adafruit" deviceset="R-US_" device="0204/5" value="3.3k"/>
+<part name="R8" library="adafruit" deviceset="R-US_" device="0204/5" value="3.3k"/>
 <part name="R9" library="adafruit" deviceset="R-US_" device="0204/5" value="120"/>
 <part name="R10" library="adafruit" deviceset="R-US_" device="0204/5" value="120"/>
 <part name="R11" library="adafruit" deviceset="R-US_" device="0204/5" value="330Ω"/>

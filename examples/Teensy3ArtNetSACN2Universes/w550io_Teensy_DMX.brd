@@ -768,7 +768,7 @@ design rules under a new name.</description>
 <element name="R1" library="adafruit" package="0204/5" value="330Ω" x="29.21" y="26.67" rot="R180"/>
 <element name="R2" library="adafruit" package="0204/5" value="330Ω" x="34.29" y="29.21" rot="R180"/>
 <element name="R3" library="adafruit" package="0204/5" value="330Ω" x="41.91" y="29.21" rot="R180"/>
-<element name="R4" library="adafruit" package="0204/5" value="1k" x="24.13" y="24.13" rot="R180"/>
+<element name="R4" library="adafruit" package="0204/5" value="10k" x="24.13" y="24.13" rot="R180"/>
 <element name="IC1" library="maxim" package="DIL08" value="MAX481CPA" x="77.47" y="7.62" rot="R270">
 <attribute name="OC_FARNELL" value="unknown" x="77.47" y="7.62" size="1.778" layer="27" rot="R270" display="off"/>
 <attribute name="OC_NEWARK" value="99K3445" x="77.47" y="7.62" size="1.778" layer="27" rot="R270" display="off"/>
@@ -786,9 +786,9 @@ design rules under a new name.</description>
 <attribute name="VALUE" x="90.805" y="7.62" size="1.27" layer="27" rot="R90"/>
 </element>
 <element name="R5" library="adafruit" package="0204/5" value="470Ω" x="67.31" y="24.13" rot="R180"/>
-<element name="R6" library="adafruit" package="0204/5" value="1k" x="67.31" y="20.32"/>
-<element name="R7" library="adafruit" package="0204/5" value="1k" x="64.77" y="6.35" rot="R270"/>
-<element name="R8" library="adafruit" package="0204/5" value="1k" x="67.31" y="11.43"/>
+<element name="R6" library="adafruit" package="0204/5" value="3.3k" x="67.31" y="20.32"/>
+<element name="R7" library="adafruit" package="0204/5" value="3.3k" x="64.77" y="6.35" rot="R270"/>
+<element name="R8" library="adafruit" package="0204/5" value="3.3k" x="67.31" y="11.43"/>
 <element name="R9" library="adafruit" package="0204/5" value="120" x="86.36" y="7.62" rot="R270"/>
 <element name="R10" library="adafruit" package="0204/5" value="120" x="86.36" y="17.78" rot="R270"/>
 <element name="R11" library="adafruit" package="0204/5" value="330Ω" x="27.94" y="59.69" smashed="yes" rot="R180">

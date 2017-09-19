@@ -26,6 +26,9 @@
 /**************************************************************************/
 
 #include <LXTeensy3DMX.h>
+#include <rdm/UID.h>
+#include <rdm/TOD.h>
+#include <rdm/rdm_utility.h>
 #include <LXTeensy3DMX2.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
@@ -54,6 +57,23 @@ EthernetUDP sUDP;
 #if defined ( use_multicast )
 EthernetUDP tUDP;
 #endif
+
+// RDM defines
+#define DISC_STATE_SEARCH 0
+#define DISC_STATE_TBL_CK 1
+
+// RDM globals
+uint8_t rdm_enabled = 1;
+uint8_t discovery_state = DISC_STATE_TBL_CK;
+uint8_t discovery_tbl_ck_index = 0;
+uint8_t tableChangedFlag = 0;
+TOD tableOfDevices;
+TOD discoveryTree;
+
+UID lower(0,0,0,0,0,0);
+UID upper(0,0,0,0,0,0);
+UID mid(0,0,0,0,0,0);
+UID found(0,0,0,0,0,0);
 
 // globals for main loop
 int packetSize;
@@ -103,6 +123,152 @@ void blinkLED2() {
   }
 }
 
+void artTodRequestReceived(uint8_t* type) {
+  if ( type[0] ) {
+    tableOfDevices.reset();
+  }
+  artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
+}
+
+void artRDMReceived(uint8_t* pdata) {
+  uint8_t plen = pdata[1] + 2;
+  uint8_t j;
+
+  uint8_t* pkt = Teensy3DMX.rdmPacket();
+  for (j=0; j<plen; j++) {
+    pkt[j+1] = pdata[j];
+  }
+  pkt[0] = 0xCC;
+
+  if ( Teensy3DMX.sendRDMControllerPacket() ) {
+    artNetInterface->send_art_rdm(&aUDP, Teensy3DMX.rdmData(), aUDP.remoteIP());
+  }
+  
+}
+
+/************************************************************************/
+
+uint8_t testMute(UID u) {
+   // try three times to get response when sending a mute message
+   if ( Teensy3DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
+     return 1;
+   }
+   if ( Teensy3DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
+     return 1;
+   }
+   if ( Teensy3DMX.sendRDMDiscoveryMute(u, RDM_DISC_MUTE) ) {
+     return 1;
+   }
+   return 0;
+}
+
+void checkDeviceFound(UID found) {
+  if ( testMute(found) ) {
+    tableOfDevices.add(found);
+    tableChangedFlag = 1;
+  }
+}
+
+uint8_t checkTable(uint8_t ck_index) {
+  if ( ck_index == 0 ) {
+    Teensy3DMX.sendRDMDiscoveryMute(BROADCAST_ALL_DEVICES_ID, RDM_DISC_UNMUTE);
+  }
+
+  if ( tableOfDevices.getUIDAt(ck_index, &found) )  {
+    if ( testMute(found) ) {
+      // device confirmed
+      return ck_index += 6;
+    }
+    
+    // device not found
+    tableOfDevices.removeUIDAt(ck_index);
+    tableChangedFlag = 1;
+    return ck_index;
+  }
+  // index invalid
+  return 0;
+}
+
+//called when range responded, so divide into sub ranges push them on stack to be further checked
+void pushActiveBranch(UID lower, UID upper) {
+  if ( mid.becomeMidpoint(lower, upper) ) {
+    discoveryTree.push(lower);
+    discoveryTree.push(mid);
+    discoveryTree.push(mid);
+    discoveryTree.push(upper);
+  } else {
+    // No midpoint possible:  lower and upper are equal or a 1 apart
+    checkDeviceFound(lower);
+    checkDeviceFound(upper);
+  }
+}
+
+void pushInitialBranch() {
+  lower.setBytes(0);
+  upper.setBytes(BROADCAST_ALL_DEVICES_ID);
+  discoveryTree.push(lower);
+  discoveryTree.push(upper);
+
+  //ETC devices seem to only respond with wildcard or exact manufacturer ID
+  lower.setBytes(0x657400000000);
+  upper.setBytes(0x6574FFFFFFFF);
+  discoveryTree.push(lower);
+  discoveryTree.push(upper);
+}
+
+uint8_t checkNextRange() {
+  if ( discoveryTree.pop(&upper) ) {
+    if ( discoveryTree.pop(&lower) ) {
+      if ( lower == upper ) {
+        checkDeviceFound(lower);
+      } else {        //not leaf so, check range lower->upper
+        uint8_t result = Teensy3DMX.sendRDMDiscoveryPacket(lower, upper, &found);
+        if ( result ) {
+          //this range responded, so divide into sub ranges push them on stack to be further checked
+          pushActiveBranch(lower, upper);
+           
+        } else if ( Teensy3DMX.sendRDMDiscoveryPacket(lower, upper, &found) ) {
+            pushActiveBranch(lower, upper); //if discovery fails, try a second time
+        }
+      }         // end check range
+      return 1; // UID ranges may be remaining to test
+    }           // end valid pop
+  }             // end valid pop  
+  return 0;     // none left to pop
+}
+
+void updateRDMDiscovery() {
+  if ( discovery_state ) {
+    // check the table of devices
+    discovery_tbl_ck_index = checkTable(discovery_tbl_ck_index);
+    
+    if ( discovery_tbl_ck_index == 0 ) {
+      // done with table check
+      discovery_state = DISC_STATE_SEARCH;
+      pushInitialBranch();
+   
+      if ( tableChangedFlag ) {   //if the table has changed...
+        tableChangedFlag = 0;
+
+        artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
+        // if this were an Art-Net application, you would send an 
+        // ArtTOD packet here, because the device table has changed.
+        // for this test, we just print the list of devices
+        Serial.println("_______________ Table Of Devices _______________");
+        tableOfDevices.printTOD();
+      }
+    } //end table check ended
+  } else {    // search for devices in range popped from discoveryTree
+
+    if ( checkNextRange() == 0 ) {
+      // done with search
+      discovery_tbl_ck_index = 0;
+      discovery_state = DISC_STATE_TBL_CK;
+    }
+  }           //end search
+}
+
+
 /************************************************************************
 
   Setup initializes Ethernet and UDP
@@ -127,20 +293,27 @@ void setup() {
   Ethernet.begin(mac);
 
   // Initialize Interfaces
+  uint8_t interface1univ = 0;	//zero based
+  uint8_t interface2univ = 1;
   sACNInterface = new LXSACN(sACNBuffer);
   sACNInterface->enableHTP();
-  //sACNInterface->setUniverse(1);	         // for different universe, change this line and the multicast address below
+  sACNInterface->setUniverse(interface1univ+1);	         // for different universe, change this line and the multicast address below
   sACNInterfaceUniverse2 = new LXSACN(sACNBuffer);
   sACNInterfaceUniverse2->enableHTP();
-  sACNInterfaceUniverse2->setUniverse(2);
+  sACNInterfaceUniverse2->setUniverse(interface2univ+1);
 
   artNetInterface = new LXArtNet(Ethernet.localIP(), Ethernet.subnetMask(), artnetBuffer);
   artNetInterface->enableHTP();
-  //artNetInterface->setSubnetUniverse(0, 0);  //for different subnet/universe, change this line
+  artNetInterface->setSubnetUniverse(0, interface1univ);  //for different subnet/universe, change this line
+  if ( rdm_enabled ) {
+    artNetInterface->setArtTodRequestCallback(&artTodRequestReceived);
+    artNetInterface->setArtRDMCallback(&artRDMReceived);
+  }
   
   artNetInterfaceUniverse2 = new LXArtNet(Ethernet.localIP(), Ethernet.subnetMask(), artnetBuffer);
   artNetInterfaceUniverse2->enableHTP();
-  artNetInterfaceUniverse2->setSubnetUniverse(0, 1);
+  
+  artNetInterfaceUniverse2->setSubnetUniverse(0, interface2univ);
   
   // set reply fields for second port
   // (each initialize of LXArtNet object sets this shared buffer to default)
@@ -149,7 +322,7 @@ void setup() {
   pollReply[173] = 2;    // number of ports
   pollReply[175] = 128;  //  can output from network (port2)
   pollReply[183] = 128;  //  good output... change if error  (port2)
-  pollReply[191] = 1;    //  universe  (port2)
+  pollReply[191] = interface2univ;    //  universe  (port2)
   pollReply[212] = 2;    //  dhcp
   strcpy((char*)&pollReply[26], "Teensy3DMX");
   strcpy((char*)&pollReply[44], "Teensy3DMX");
@@ -170,7 +343,11 @@ void setup() {
   pinMode(U2_LED, OUTPUT);
   Teensy3DMX.setDirectionPin(U1_DIR);
   
-  Teensy3DMX.startOutput();
+  if ( rdm_enabled ) {
+  	Teensy3DMX.startRDM(U1_DIR, RDM_DIRECTION_OUTPUT, RX_SIGNAL_INVERTED);
+  } else {
+    Teensy3DMX.startOutput();
+  }
   Teensy3DMX2.startOutput();
 } //setup
 
@@ -272,6 +449,8 @@ void loop() {
   if ((read_result_artnet1 == RESULT_DMX_RECEIVED) || (read_result_sacn1 == RESULT_DMX_RECEIVED)) {
     copyDMX1ToOutput();
     blinkLED();
+  } else if ( rdm_enabled ) {
+  	updateRDMDiscovery();
   }
   if ((read_result_artnet2 == RESULT_DMX_RECEIVED) || (read_result_sacn2 == RESULT_DMX_RECEIVED)) {
     copyDMX2ToOutput();

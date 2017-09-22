@@ -456,4 +456,10 @@ void loop() {
     copyDMX2ToOutput();
     blinkLED2();
   }
+  
+  uint8_t dhcpr = Ethernet.maintain();
+  if (( dhcpr == 4 ) || (dhcpr == 2)) {	//renew/rebind success, update ArtPollReply
+  	artNetInterface->setLocalIP(Ethernet.localIP(), Ethernet.subnetMask());
+  	artNetInterfaceUniverse2->setLocalIP(Ethernet.localIP(), Ethernet.subnetMask());
+  }
 } //loop()

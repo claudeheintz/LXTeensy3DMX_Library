@@ -20,12 +20,12 @@
 
 
 /*********************************************************************
- * Global Variables
+ * Global&static Variables
 */
 
 LXTeensyDMX Teensy3DMX;
 
-
+UID LXTeensyDMX::THIS_DEVICE_ID(0x6C, 0x78, 0x00, 0x00, 0x00, 0x03);
 
 /*********************************************************************
  * UART Serial Functions
@@ -270,7 +270,7 @@ void LXTeensyDMX::transmitEmpty( void ) {
 
 		if ( _dmx_state == DMX_STATE_DATA ) {
 		  UART0_D = _rdmPacket[_next_slot++];	//send next slot
-		  if ( _next_slot > _rdm_len ) {
+		  if ( _next_slot >= _rdm_len ) {		//0 based index
 			 _dmx_state = DMX_STATE_IDLE;
 			 UART0_C2 &= ~UART_C2_TIE;
 			 UART0_C2 |= UART_C2_TCIE;			//switch to wait for tx complete
@@ -289,7 +289,7 @@ void LXTeensyDMX::transmitEmpty( void ) {
 		
 		if ( _dmx_state == DMX_STATE_DATA ) {
 		  UART0_D = _dmxData[_next_slot++];	//send next slot
-		  if ( _next_slot > _slots ) {
+		  if ( _next_slot > _slots ) {		//slots are 1 based index so OK to use > , index[512] is slot 512
 			 _dmx_state = DMX_STATE_IDLE;
 			 UART0_C2 &= ~UART_C2_TIE;
 			 UART0_C2 |= UART_C2_TCIE;			//switch to wait for tx complete
@@ -509,7 +509,7 @@ void  LXTeensyDMX::setupRDMControllerPacket(uint8_t* pdata, uint8_t msglen, uint
   	pdata[RDM_IDX_PACKET_SIZE]		= msglen;
   	
   	// must set target UID outside this method
-  	UID::copyUID(THIS_DEVICE_ID, pdata, RDM_IDX_SOURCE_UID);
+  	UID::copyFromUID(THIS_DEVICE_ID, pdata, RDM_IDX_SOURCE_UID);
   	
   	pdata[RDM_IDX_TRANSACTION_NUM]	= _transaction++;
   	pdata[RDM_IDX_PORT]				= port;
@@ -533,10 +533,10 @@ uint8_t LXTeensyDMX::sendRDMDiscoveryPacket(UID lower, UID upper, UID* single) {
 	
 	//Build RDM packet
 	setupRDMControllerPacket(_rdmPacket, RDM_DISC_UNIQUE_BRANCH_MSGL, RDM_PORT_ONE, RDM_ROOT_DEVICE);
-	UID::copyUID(BROADCAST_ALL_DEVICES_ID, _rdmPacket, 3);
+	UID::copyFromUID(BROADCAST_ALL_DEVICES_ID, _rdmPacket, 3);
 	setupRDMMessageDataBlock(_rdmPacket, RDM_DISCOVERY_COMMAND, RDM_DISC_UNIQUE_BRANCH, RDM_DISC_UNIQUE_BRANCH_PDL);
-  	UID::copyUID(lower, _rdmPacket, 24);
-  	UID::copyUID(upper, _rdmPacket, 30);
+  	UID::copyFromUID(lower, _rdmPacket, 24);
+  	UID::copyFromUID(upper, _rdmPacket, 30);
 	
 	_rdm_read_handled = 1;
 	sendRawRDMPacket(RDM_DISC_UNIQUE_BRANCH_PKTL);
@@ -594,7 +594,7 @@ uint8_t LXTeensyDMX::sendRDMDiscoveryMute(UID target, uint8_t cmd) {
 	//Build RDM packet
 	// total packet length 0 parameter is 24 (+cksum =26 for sendRawRDMPacket) 
 	setupRDMControllerPacket(_rdmPacket, RDM_PKT_BASE_MSG_LEN, RDM_PORT_ONE, RDM_ROOT_DEVICE);
-	UID::copyUID(target, _rdmPacket, 3);
+	UID::copyFromUID(target, _rdmPacket, 3);
 	setupRDMMessageDataBlock(_rdmPacket, RDM_DISCOVERY_COMMAND, cmd, 0x00);
 
 	_rdm_read_handled = 1;
@@ -659,7 +659,7 @@ uint8_t LXTeensyDMX::sendRDMGetCommand(UID target, uint16_t pid, uint8_t* info, 
 	//Build RDM packet
 	// total packet length 0 parameter is 24 (+cksum =26 for sendRawRDMPacket) 
 	setupRDMControllerPacket(_rdmPacket, RDM_PKT_BASE_MSG_LEN, RDM_PORT_ONE, RDM_ROOT_DEVICE);
-	UID::copyUID(target, _rdmPacket, 3);
+	UID::copyFromUID(target, _rdmPacket, 3);
 	setupRDMMessageDataBlock(_rdmPacket, RDM_GET_COMMAND, pid, 0x00);
 	
 	if ( sendRDMControllerPacket() ) {
@@ -684,7 +684,7 @@ uint8_t LXTeensyDMX::sendRDMSetCommand(UID target, uint16_t pid, uint8_t* info, 
 	//Build RDM packet
 	// total packet length 1 byte parameter is 25 (+cksum =27 for sendRawRDMPacket) 
 	setupRDMControllerPacket(_rdmPacket, RDM_PKT_BASE_MSG_LEN+len, RDM_PORT_ONE, RDM_ROOT_DEVICE);
-	UID::copyUID(target, _rdmPacket, 3);
+	UID::copyFromUID(target, _rdmPacket, 3);
 	setupRDMMessageDataBlock(_rdmPacket, RDM_SET_COMMAND, pid, len);
 	for(int j=0; j<len; j++) {
 		_rdmPacket[24+j] = info[j];

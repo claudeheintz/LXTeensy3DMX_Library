@@ -104,10 +104,8 @@ void lx_uart0_status_isr(void)
 	uint8_t incoming_byte = UART0_D;					// read buffer to clear interrupt flag (should go here or below?)
   
 	  if ( UART0_S1 & UART_S1_FE ) {					// framing error
-			//digitalWrite(4, LOW);
 			Teensy3DMX.breakReceived(); 
-			// digitalWrite(4, HIGH);
-			//return;
+			return;										// do not call byteReceived if framing error
 	  }	
   
 	  if ( UART0_S1 & UART_S1_RDRF ) {					// receive register full
@@ -433,10 +431,6 @@ void LXTeensyDMX::byteReceived(uint8_t c) {
 				_packet_length = DMX_MAX_FRAME;
 			} else if ( _receivedData[0] != 0 ) {		// if Not Null Start Code
 				_dmx_read_state = DMX_STATE_IDLE;			//unrecognized, ignore packet
-			}
-		} else if (( _current_slot == 0 ) && _rdm_read_handled ) {
-			if ( c == 0 ) {			// ignore leading zeros in RDM response, unsure why they appear
-				return;
 			}
 		}
 	

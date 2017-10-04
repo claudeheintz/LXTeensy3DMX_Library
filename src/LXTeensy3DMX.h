@@ -172,6 +172,7 @@ class LXTeensyDMX {
     * @return pointer to received bytes
    */
    uint8_t* receivedData(void);
+   int nextReadSlot(void);
    
    /*!
     * @brief provides direct access to outgoing rdm packet array
@@ -342,6 +343,8 @@ class LXTeensyDMX {
     */
     uint8_t sendRDMSetCommand(UID target, uint16_t pid, uint8_t* info, uint8_t len);
     
+    static UID THIS_DEVICE_ID;
+    
   protected:
    /*!
     * @brief Indicates mode ISR_OUTPUT_ENABLED or ISR_INPUT_ENABLED or ISR_DISABLED
@@ -436,9 +439,6 @@ class LXTeensyDMX {
 };
 
 extern LXTeensyDMX Teensy3DMX;
-
-
-const UID THIS_DEVICE_ID(0x6C, 0x78, 0x00, 0x00, 0x00, 0x03);
 
 
 /**************************************************************************************/

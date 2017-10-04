@@ -99,19 +99,24 @@ void serial_one_end(void)
 
 void lx_uart0_status_isr(void)
 {
-uint8_t incoming_byte = UART0_D;					// read buffer to clear interrupt flag (should go here or below?)
-  
-  if ( UART0_S1 & UART_S1_FE ) {					// framing error
-		Teensy3DMX.breakReceived(); 
-		return;
-  }	
-  
-  if ( UART0_S1 & UART_S1_RDRF ) {					// receive register full
-  		Teensy3DMX.byteReceived(incoming_byte);
-  }			// receive register full
-  
-  		// framing error
+
 	
+	uint8_t incoming_byte = UART0_D;					// read buffer to clear interrupt flag (should go here or below?)
+  
+	  if ( UART0_S1 & UART_S1_FE ) {					// framing error
+			//digitalWrite(4, LOW);
+			Teensy3DMX.breakReceived(); 
+			// digitalWrite(4, HIGH);
+			//return;
+	  }	
+  
+	  if ( UART0_S1 & UART_S1_RDRF ) {					// receive register full
+			Teensy3DMX.byteReceived(incoming_byte);
+	  }			// receive register full
+  
+			// framing error
+	
+
 	
 // ********************** send portion of isr
 
@@ -261,6 +266,10 @@ uint8_t* LXTeensyDMX::receivedData(void) {
 
 uint8_t* LXTeensyDMX::rdmPacket(void) {
 	return _rdmPacket;
+}
+
+int LXTeensyDMX::nextReadSlot(void) {
+	return _current_slot;
 }
 
 /*************************** sending ***********************************/
@@ -424,6 +433,10 @@ void LXTeensyDMX::byteReceived(uint8_t c) {
 				_packet_length = DMX_MAX_FRAME;
 			} else if ( _receivedData[0] != 0 ) {		// if Not Null Start Code
 				_dmx_read_state = DMX_STATE_IDLE;			//unrecognized, ignore packet
+			}
+		} else if (( _current_slot == 0 ) && _rdm_read_handled ) {
+			if ( c == 0 ) {			// ignore leading zeros in RDM response, unsure why they appear
+				return;
 			}
 		}
 	
@@ -599,7 +612,7 @@ uint8_t LXTeensyDMX::sendRDMDiscoveryMute(UID target, uint8_t cmd) {
 
 	_rdm_read_handled = 1;
 	sendRawRDMPacket(RDM_PKT_BASE_TOTAL_LEN);
-	delay(2);
+	delay(3);
 	
 	if ( _current_slot >= (RDM_PKT_BASE_TOTAL_LEN+2) ) {				//expected pdl 2 or 8
 		if ( validateRDMPacket(_receivedData) ) {
@@ -626,7 +639,7 @@ uint8_t LXTeensyDMX::sendRDMControllerPacket( void ) {
 	uint8_t rv = 0;
 	_rdm_read_handled = 1;
 	sendRawRDMPacket(_rdmPacket[2]+2);
-	delay(2);
+	delay(3);
 	
 	if ( _current_slot > 0 ) {
 		if ( validateRDMPacket(_receivedData) ) {

@@ -10986,7 +10986,6 @@ COM-10820 (clear)&lt;br&gt;</description>
 <part name="R1" library="adafruit" deviceset="R-US_" device="0204/5" value="330Ω"/>
 <part name="R2" library="adafruit" deviceset="R-US_" device="0204/5" value="330Ω"/>
 <part name="R3" library="adafruit" deviceset="R-US_" device="0204/5" value="330Ω"/>
-<part name="R4" library="adafruit" deviceset="R-US_" device="0204/5" value="10k"/>
 <part name="IC1" library="maxim" deviceset="MAX481CPA" device=""/>
 <part name="IC2" library="maxim" deviceset="MAX481CPA" device=""/>
 <part name="DMXOUT" library="adafruit" deviceset="PINHD-1X6" device="B" value="J3"/>
@@ -11004,6 +11003,7 @@ COM-10820 (clear)&lt;br&gt;</description>
 <part name="D1" library="SparkFun-LED" deviceset="LED-RGB-CA-THRU" device="CLEAR"/>
 <part name="C5" library="adafruit" deviceset="CPOL-US" device="B45181B" value="10uf"/>
 <part name="C6" library="adafruit" deviceset="CPOL-US" device="B45181B" value="10uf"/>
+<part name="R4" library="adafruit" deviceset="R-US_" device="0204/5" value="10k"/>
 </parts>
 <sheets>
 <sheet>
@@ -11048,7 +11048,6 @@ used for DMX input</text>
 <instance part="R1" gate="G$1" x="93.98" y="66.04"/>
 <instance part="R2" gate="G$1" x="93.98" y="45.72"/>
 <instance part="R3" gate="G$1" x="93.98" y="5.08"/>
-<instance part="R4" gate="G$1" x="93.98" y="83.82" rot="R270"/>
 <instance part="IC1" gate="G$1" x="12.7" y="5.08" rot="R180"/>
 <instance part="IC2" gate="G$1" x="12.7" y="50.8" rot="R180"/>
 <instance part="DMXOUT" gate="A" x="-15.24" y="30.48" smashed="yes" rot="R180">
@@ -11088,6 +11087,10 @@ used for DMX input</text>
 <instance part="D1" gate="G$1" x="167.64" y="76.2" rot="R90"/>
 <instance part="C5" gate="G$1" x="104.14" y="88.9"/>
 <instance part="C6" gate="G$1" x="109.22" y="88.9"/>
+<instance part="R4" gate="G$1" x="86.36" y="15.24" smashed="yes" rot="R270">
+<attribute name="NAME" x="87.8586" y="19.05" size="1.778" layer="95" rot="R270"/>
+<attribute name="VALUE" x="88.138" y="13.97" size="1.778" layer="96" rot="R270"/>
+</instance>
 </instances>
 <busses>
 </busses>
@@ -11143,8 +11146,11 @@ used for DMX input</text>
 <net name="3.3V" class="0">
 <segment>
 <pinref part="TEENSY3R" gate="A" pin="3"/>
-<wire x1="154.94" y1="78.74" x2="175.26" y2="78.74" width="0.1524" layer="91"/>
-<wire x1="175.26" y1="78.74" x2="175.26" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="154.94" y1="78.74" x2="147.32" y2="78.74" width="0.1524" layer="91"/>
+<wire x1="147.32" y1="78.74" x2="147.32" y2="50.8" width="0.1524" layer="91"/>
+<wire x1="147.32" y1="50.8" x2="149.86" y2="50.8" width="0.1524" layer="91"/>
+<wire x1="149.86" y1="50.8" x2="149.86" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="149.86" y1="17.78" x2="154.94" y2="17.78" width="0.1524" layer="91"/>
 <wire x1="175.26" y1="17.78" x2="175.26" y2="15.24" width="0.1524" layer="91"/>
 <wire x1="175.26" y1="15.24" x2="175.26" y2="-10.16" width="0.1524" layer="91"/>
 <wire x1="175.26" y1="-10.16" x2="121.92" y2="-10.16" width="0.1524" layer="91"/>
@@ -11166,12 +11172,20 @@ used for DMX input</text>
 <wire x1="81.28" y1="58.42" x2="81.28" y2="38.1" width="0.1524" layer="91"/>
 <wire x1="81.28" y1="38.1" x2="73.66" y2="38.1" width="0.1524" layer="91"/>
 <junction x="81.28" y="38.1"/>
-<wire x1="81.28" y1="38.1" x2="81.28" y2="0" width="0.1524" layer="91"/>
+<wire x1="81.28" y1="38.1" x2="81.28" y2="25.4" width="0.1524" layer="91"/>
+<wire x1="81.28" y1="25.4" x2="81.28" y2="10.16" width="0.1524" layer="91"/>
+<wire x1="81.28" y1="10.16" x2="81.28" y2="0" width="0.1524" layer="91"/>
 <wire x1="81.28" y1="-2.54" x2="73.66" y2="-2.54" width="0.1524" layer="91"/>
 <wire x1="121.92" y1="0" x2="81.28" y2="0" width="0.1524" layer="91"/>
 <wire x1="81.28" y1="0" x2="81.28" y2="-2.54" width="0.1524" layer="91"/>
 <junction x="81.28" y="0"/>
 <junction x="121.92" y="0"/>
+<pinref part="OK4" gate="A" pin="VCC"/>
+<wire x1="73.66" y1="25.4" x2="81.28" y2="25.4" width="0.1524" layer="91"/>
+<junction x="81.28" y="25.4"/>
+<pinref part="R4" gate="G$1" pin="2"/>
+<wire x1="86.36" y1="10.16" x2="81.28" y2="10.16" width="0.1524" layer="91"/>
+<junction x="81.28" y="10.16"/>
 </segment>
 </net>
 <net name="RESET" class="0">
@@ -11238,11 +11252,7 @@ used for DMX input</text>
 <wire x1="147.32" y1="91.44" x2="147.32" y2="83.82" width="0.1524" layer="91"/>
 <pinref part="TEENSY3R" gate="A" pin="1"/>
 <wire x1="147.32" y1="83.82" x2="154.94" y2="83.82" width="0.1524" layer="91"/>
-<pinref part="R4" gate="G$1" pin="1"/>
-<wire x1="93.98" y1="88.9" x2="93.98" y2="91.44" width="0.1524" layer="91"/>
-<wire x1="78.74" y1="91.44" x2="93.98" y2="91.44" width="0.1524" layer="91"/>
-<wire x1="93.98" y1="91.44" x2="104.14" y2="91.44" width="0.1524" layer="91"/>
-<junction x="93.98" y="91.44"/>
+<wire x1="78.74" y1="91.44" x2="104.14" y2="91.44" width="0.1524" layer="91"/>
 <pinref part="PWR" gate="-1" pin="S"/>
 <wire x1="104.14" y1="91.44" x2="109.22" y2="91.44" width="0.1524" layer="91"/>
 <wire x1="109.22" y1="91.44" x2="147.32" y2="91.44" width="0.1524" layer="91"/>
@@ -11255,10 +11265,6 @@ used for DMX input</text>
 <junction x="104.14" y="91.44"/>
 <pinref part="C6" gate="G$1" pin="+"/>
 <junction x="109.22" y="91.44"/>
-<wire x1="78.74" y1="25.4" x2="78.74" y2="78.74" width="0.1524" layer="91"/>
-<junction x="78.74" y="78.74"/>
-<pinref part="OK4" gate="A" pin="VCC"/>
-<wire x1="78.74" y1="25.4" x2="73.66" y2="25.4" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -11305,10 +11311,6 @@ used for DMX input</text>
 <pinref part="OK3" gate="A" pin="GND"/>
 <wire x1="50.8" y1="5.08" x2="50.8" y2="10.16" width="0.1524" layer="91"/>
 <wire x1="50.8" y1="10.16" x2="33.02" y2="10.16" width="0.1524" layer="91"/>
-<wire x1="33.02" y1="22.86" x2="48.26" y2="22.86" width="0.1524" layer="91"/>
-<pinref part="OK4" gate="A" pin="C"/>
-<wire x1="50.8" y1="17.78" x2="48.26" y2="17.78" width="0.1524" layer="91"/>
-<wire x1="48.26" y1="22.86" x2="48.26" y2="17.78" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="VCC" class="0">
@@ -11330,7 +11332,8 @@ used for DMX input</text>
 <junction x="43.18" y="68.58"/>
 <junction x="43.18" y="58.42"/>
 <wire x1="43.18" y1="38.1" x2="43.18" y2="30.48" width="0.1524" layer="91"/>
-<wire x1="43.18" y1="30.48" x2="43.18" y2="20.32" width="0.1524" layer="91"/>
+<wire x1="43.18" y1="30.48" x2="43.18" y2="25.4" width="0.1524" layer="91"/>
+<wire x1="43.18" y1="25.4" x2="43.18" y2="20.32" width="0.1524" layer="91"/>
 <wire x1="43.18" y1="20.32" x2="43.18" y2="17.78" width="0.1524" layer="91"/>
 <wire x1="43.18" y1="17.78" x2="43.18" y2="-2.54" width="0.1524" layer="91"/>
 <pinref part="OK3" gate="A" pin="VCC"/>
@@ -11364,21 +11367,22 @@ used for DMX input</text>
 <wire x1="27.94" y1="2.54" x2="27.94" y2="7.62" width="0.1524" layer="91"/>
 <wire x1="27.94" y1="7.62" x2="25.4" y2="7.62" width="0.1524" layer="91"/>
 <junction x="27.94" y="2.54"/>
+<pinref part="OK4" gate="A" pin="A"/>
+<wire x1="43.18" y1="25.4" x2="50.8" y2="25.4" width="0.1524" layer="91"/>
+<wire x1="50.8" y1="25.4" x2="53.34" y2="25.4" width="0.1524" layer="91"/>
+<junction x="43.18" y="25.4"/>
 </segment>
 </net>
 <net name="RX0" class="0">
 <segment>
+<label x="93.98" y="78.74" size="1.778" layer="95"/>
 <pinref part="TEENSY3L" gate="A" pin="2"/>
-<wire x1="86.36" y1="20.32" x2="86.36" y2="78.74" width="0.1524" layer="91"/>
-<label x="86.36" y="17.78" size="1.778" layer="95"/>
+<wire x1="86.36" y1="81.28" x2="132.08" y2="81.28" width="0.1524" layer="91"/>
 <pinref part="OK4" gate="A" pin="VO"/>
-<wire x1="99.06" y1="81.28" x2="132.08" y2="81.28" width="0.1524" layer="91"/>
 <wire x1="86.36" y1="20.32" x2="73.66" y2="20.32" width="0.1524" layer="91"/>
-<wire x1="99.06" y1="81.28" x2="99.06" y2="78.74" width="0.1524" layer="91"/>
-<wire x1="99.06" y1="78.74" x2="93.98" y2="78.74" width="0.1524" layer="91"/>
-<pinref part="R4" gate="G$1" pin="2"/>
-<wire x1="93.98" y1="78.74" x2="86.36" y2="78.74" width="0.1524" layer="91"/>
-<junction x="93.98" y="78.74"/>
+<wire x1="86.36" y1="20.32" x2="86.36" y2="81.28" width="0.1524" layer="91"/>
+<pinref part="R4" gate="G$1" pin="1"/>
+<junction x="86.36" y="20.32"/>
 </segment>
 </net>
 <net name="N$5" class="0">
@@ -11573,12 +11577,12 @@ used for DMX input</text>
 </net>
 <net name="N$1" class="0">
 <segment>
+<pinref part="OK4" gate="A" pin="C"/>
+<wire x1="50.8" y1="17.78" x2="48.26" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="48.26" y1="22.86" x2="48.26" y2="17.78" width="0.1524" layer="91"/>
+<wire x1="48.26" y1="22.86" x2="38.1" y2="22.86" width="0.1524" layer="91"/>
 <pinref part="R5" gate="G$1" pin="1"/>
-<wire x1="48.26" y1="33.02" x2="38.1" y2="33.02" width="0.1524" layer="91"/>
-<wire x1="48.26" y1="33.02" x2="48.26" y2="25.4" width="0.1524" layer="91"/>
-<pinref part="OK4" gate="A" pin="A"/>
-<wire x1="48.26" y1="25.4" x2="50.8" y2="25.4" width="0.1524" layer="91"/>
-<wire x1="50.8" y1="25.4" x2="53.34" y2="25.4" width="0.1524" layer="91"/>
+<wire x1="38.1" y1="22.86" x2="38.1" y2="33.02" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>

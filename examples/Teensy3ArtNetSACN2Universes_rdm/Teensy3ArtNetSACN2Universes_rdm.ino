@@ -22,6 +22,8 @@
     @section  HISTORY
 
     v1.00 - First release January 2017
+    v1.9  - RDM Draft September 2017
+    v2.00 - RDM version October 2017
 */
 /**************************************************************************/
 
@@ -35,6 +37,9 @@
 #include <LXDMXEthernet.h>
 #include <LXArtNet.h>
 #include <LXSACN.h>
+#include <EEPROM.h>
+
+//#define PRINT_DEBUG_MESSAGES 1
 
 // to use unicast sACN, uncomment the following:
 #define use_multicast 1
@@ -95,14 +100,17 @@ uint8_t read_result_sacn2;
 //                  SCK 13
 #define          U1_LED 14
 #define          U2_LED 15
+#define         RED_LED 16
+#define      BUTTON_PIN 17
 //                 3.3V --
 //                5V In --
 
 uint8_t led_state = 0;
 uint8_t led_state2 = 0;
+// used to toggle stored scene on and off
+uint8_t scene_state = 0;
 
 void blinkLED() {
-  //Serial.println("LED");
   if ( led_state ) {
     digitalWrite(U1_LED, HIGH);
     led_state = 0;
@@ -113,7 +121,6 @@ void blinkLED() {
 }
 
 void blinkLED2() {
-  //Serial.println("LED2");
   if ( led_state2 ) {
     digitalWrite(U2_LED, HIGH);
     led_state2 = 0;
@@ -142,6 +149,13 @@ void artRDMReceived(uint8_t* pdata) {
 
   if ( Teensy3DMX.sendRDMControllerPacket() ) {
     artNetInterface->send_art_rdm(&aUDP, Teensy3DMX.rdmData(), aUDP.remoteIP());
+  }
+  
+}
+
+void artCmdReceived(uint8_t* pdata) {
+  if ( strcmp((const char*)pdata, "record=1") == 0 ) {
+    //rememberScene();
   }
   
 }
@@ -234,12 +248,16 @@ uint8_t checkNextRange() {
       return 1; // UID ranges may be remaining to test
     }           // end valid pop
   }             // end valid pop  
+ #if defined PRINT_DEBUG_MESSAGES
+  Serial.println("rdm search done");
+#endif
   return 0;     // none left to pop
 }
 
 void updateRDMDiscovery() {
   if ( discovery_state ) {
-    // check the table of devices
+    // check the table of devices#if defined PRINT_DEBUG_MESSAGES
+
     discovery_tbl_ck_index = checkTable(discovery_tbl_ck_index);
     
     if ( discovery_tbl_ck_index == 0 ) {
@@ -254,12 +272,14 @@ void updateRDMDiscovery() {
         // if this were an Art-Net application, you would send an 
         // ArtTOD packet here, because the device table has changed.
         // for this test, we just print the list of devices
+#if defined PRINT_DEBUG_MESSAGES
         Serial.println("_______________ Table Of Devices _______________");
         tableOfDevices.printTOD();
+#endif
       }
     } //end table check ended
   } else {    // search for devices in range popped from discoveryTree
-
+    
     if ( checkNextRange() == 0 ) {
       // done with search
       discovery_tbl_ck_index = 0;
@@ -286,18 +306,23 @@ void setup() {
   digitalWrite(W5500_RESET_PIN, LOW);
   delay(500);
   digitalWrite(W5500_RESET_PIN, HIGH);
-  //Serial.begin(115200);
-  //while(!Serial);
+#if defined( PRINT_DEBUG_MESSAGES )
+#warning PRINT_DEBUG_MESSAGES is defined
+  Serial.begin(115200);
+#endif
+
+  //pinMode(4, OUTPUT);
 
   // The following starts ethernet using DHCP
   Ethernet.begin(mac);
 
   // Initialize Interfaces
-  uint8_t interface1univ = 0;	//zero based
-  uint8_t interface2univ = 1;
+  uint8_t interface1univ = 1;
+  uint8_t interface2univ = 0;
   sACNInterface = new LXSACN(sACNBuffer);
   sACNInterface->enableHTP();
-  sACNInterface->setUniverse(interface1univ+1);	         // for different universe, change this line and the multicast address below
+  sACNInterface->setUniverse(interface1univ+1);
+  //sACNInterface->setUniverse(1);	         // for different universe, change this line and the multicast address below
   sACNInterfaceUniverse2 = new LXSACN(sACNBuffer);
   sACNInterfaceUniverse2->enableHTP();
   sACNInterfaceUniverse2->setUniverse(interface2univ+1);
@@ -308,11 +333,11 @@ void setup() {
   if ( rdm_enabled ) {
     artNetInterface->setArtTodRequestCallback(&artTodRequestReceived);
     artNetInterface->setArtRDMCallback(&artRDMReceived);
+    artNetInterface->setArtCommandCallback(&artCmdReceived);
   }
   
   artNetInterfaceUniverse2 = new LXArtNet(Ethernet.localIP(), Ethernet.subnetMask(), artnetBuffer);
   artNetInterfaceUniverse2->enableHTP();
-  
   artNetInterfaceUniverse2->setSubnetUniverse(0, interface2univ);
   
   // set reply fields for second port
@@ -341,14 +366,23 @@ void setup() {
 
   pinMode(U1_LED, OUTPUT);
   pinMode(U2_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
   Teensy3DMX.setDirectionPin(U1_DIR);
   
   if ( rdm_enabled ) {
-  	Teensy3DMX.startRDM(U1_DIR, RDM_DIRECTION_OUTPUT, RX_SIGNAL_INVERTED);
+  	Teensy3DMX.startRDM(U1_DIR, RDM_DIRECTION_OUTPUT, RX_SIGNAL_NORMAL);
   } else {
     Teensy3DMX.startOutput();
   }
   Teensy3DMX2.startOutput();
+
+  #if defined( PRINT_DEBUG_MESSAGES )
+#warning PRINT_DEBUG_MESSAGES is defined
+  Serial.print(" Setup is complete ");
+  Serial.println(Ethernet.localIP());
+#endif
+
 } //setup
 
 void copyDMX1ToOutput(void) {
@@ -372,6 +406,7 @@ void copyDMX1ToOutput(void) {
         Teensy3DMX.setSlot(i , s);
       }
    }
+   scene_state = 0;
 }
 
 void copyDMX2ToOutput(void) {
@@ -456,7 +491,7 @@ void loop() {
     copyDMX2ToOutput();
     blinkLED2();
   }
-  
+
   uint8_t dhcpr = Ethernet.maintain();
   if (( dhcpr == 4 ) || (dhcpr == 2)) {	//renew/rebind success, update ArtPollReply
   	artNetInterface->setLocalIP(Ethernet.localIP(), Ethernet.subnetMask());

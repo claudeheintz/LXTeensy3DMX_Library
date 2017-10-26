@@ -66,9 +66,18 @@ EthernetUDP tUDP;
 // RDM defines
 #define DISC_STATE_SEARCH 0
 #define DISC_STATE_TBL_CK 1
+/*
+ * If RDM_DISCOVER_ALWAYS == 0, the times RDM discovery runs is limited to 10 cycles
+ * of table check and search.  When rdm_discovery_enable reaches zero, continous RDM 
+ * discovery stops.  Other ArtRDM packets continue to be relayed.
+ * If an Art-Net TODRequest or TODControl packet is received, the rdm_discovery_enable
+ * counter is reset and discovery runs again until rdm_discovery_enable reaches zero.
+ */
+#define RDM_DISCOVER_ALWAYS 0
 
 // RDM globals
 uint8_t rdm_enabled = 1;
+uint8_t rdm_discovery_enable = 10;				// limit RDM discovery which can cause flicker in some equipment
 uint8_t discovery_state = DISC_STATE_TBL_CK;
 uint8_t discovery_tbl_ck_index = 0;
 uint8_t tableChangedFlag = 0;
@@ -107,8 +116,6 @@ uint8_t read_result_sacn2;
 
 uint8_t led_state = 0;
 uint8_t led_state2 = 0;
-// used to toggle stored scene on and off
-uint8_t scene_state = 0;
 
 void blinkLED() {
   if ( led_state ) {
@@ -134,6 +141,7 @@ void artTodRequestReceived(uint8_t* type) {
   if ( type[0] ) {
     tableOfDevices.reset();
   }
+  rdm_discovery_enable = 10;
   artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
 }
 
@@ -154,10 +162,10 @@ void artRDMReceived(uint8_t* pdata) {
 }
 
 void artCmdReceived(uint8_t* pdata) {
-  if ( strcmp((const char*)pdata, "record=1") == 0 ) {
-    //rememberScene();
+  if ( strcmp((const char*)pdata, "clearSACN") == 0 ) {
+    sACNInterface->clearDMXOutput();
+    sACNInterfaceUniverse2->clearDMXOutput();
   }
-  
 }
 
 /************************************************************************/
@@ -254,38 +262,46 @@ uint8_t checkNextRange() {
   return 0;     // none left to pop
 }
 
-void updateRDMDiscovery() {
-  if ( discovery_state ) {
-    // check the table of devices#if defined PRINT_DEBUG_MESSAGES
-
-    discovery_tbl_ck_index = checkTable(discovery_tbl_ck_index);
+void sendTODifChanged() {
+  if ( tableChangedFlag ) {   //if the table has changed...
+    tableChangedFlag--;
     
-    if ( discovery_tbl_ck_index == 0 ) {
-      // done with table check
-      discovery_state = DISC_STATE_SEARCH;
-      pushInitialBranch();
-   
-      if ( tableChangedFlag ) {   //if the table has changed...
-        tableChangedFlag = 0;
-
-        artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
-        // if this were an Art-Net application, you would send an 
-        // ArtTOD packet here, because the device table has changed.
-        // for this test, we just print the list of devices
+    artNetInterface->send_art_tod(&aUDP, tableOfDevices.rawBytes(), tableOfDevices.count());
 #if defined PRINT_DEBUG_MESSAGES
-        Serial.println("_______________ Table Of Devices _______________");
-        tableOfDevices.printTOD();
+    Serial.println("_______________ Table Of Devices _______________");
+    tableOfDevices.printTOD();
 #endif
-      }
-    } //end table check ended
-  } else {    // search for devices in range popped from discoveryTree
-    
-    if ( checkNextRange() == 0 ) {
-      // done with search
-      discovery_tbl_ck_index = 0;
-      discovery_state = DISC_STATE_TBL_CK;
-    }
-  }           //end search
+  }
+}
+
+void updateRDMDiscovery() {
+  	if ( rdm_discovery_enable ) {  // run RDM updates for a limited number of times
+	  if ( discovery_state ) {
+		// check the table of devices#if defined PRINT_DEBUG_MESSAGES
+
+		discovery_tbl_ck_index = checkTable(discovery_tbl_ck_index);
+	
+		if ( discovery_tbl_ck_index == 0 ) {
+		  // done with table check
+		  discovery_state = DISC_STATE_SEARCH;
+		  pushInitialBranch();
+   
+		  sendTODifChanged();
+		} //end table check ended
+	  } else {    // search for devices in range popped from discoveryTree
+	
+		if ( checkNextRange() == 0 ) {
+		  // done with search
+		  discovery_tbl_ck_index = 0;
+		  discovery_state = DISC_STATE_TBL_CK;
+		  
+		  sendTODifChanged();
+		  if ( RDM_DISCOVER_ALWAYS == 0 ) {
+		     rdm_discovery_enable--;
+		  }
+		}
+	  }           //end search
+  }               //end rdm_discovery_enable
 }
 
 
@@ -317,8 +333,8 @@ void setup() {
   Ethernet.begin(mac);
 
   // Initialize Interfaces
-  uint8_t interface1univ = 1;
-  uint8_t interface2univ = 0;
+  uint8_t interface1univ = 0;
+  uint8_t interface2univ = 1;
   sACNInterface = new LXSACN(sACNBuffer);
   sACNInterface->enableHTP();
   sACNInterface->setUniverse(interface1univ+1);
@@ -354,8 +370,8 @@ void setup() {
 
 // multicast requires modificaton of Ethernet library.  see LXDMXEthernet.h
 #if defined ( use_multicast )
-  sUDP.beginMulticast(IPAddress(239,255,0,1), sACNInterface->dmxPort());
-  tUDP.beginMulticast(IPAddress(239,255,0,2), sACNInterface->dmxPort());
+  sUDP.beginMulticast(IPAddress(239,255,0,(interface1univ+1)), sACNInterface->dmxPort());
+  tUDP.beginMulticast(IPAddress(239,255,0,(interface2univ+1)), sACNInterface->dmxPort());
 #else
   sUDP.begin(sACNInterface->dmxPort());
 #endif
@@ -406,7 +422,6 @@ void copyDMX1ToOutput(void) {
         Teensy3DMX.setSlot(i , s);
       }
    }
-   scene_state = 0;
 }
 
 void copyDMX2ToOutput(void) {
@@ -443,58 +458,60 @@ void copyDMX2ToOutput(void) {
 *************************************************************************/
 
 void loop() {
+
   read_result_artnet1 = RESULT_NONE;
   read_result_artnet2 = RESULT_NONE;
   read_result_sacn1 = RESULT_NONE;
   read_result_sacn2 = RESULT_NONE;
-  
+
   packetSize = aUDP.parsePacket();
   if ( packetSize ) {
-  	packetSize = aUDP.read(artnetBuffer, ARTNET_BUFFER_MAX);
+	packetSize = aUDP.read(artnetBuffer, ARTNET_BUFFER_MAX);
 	  read_result_artnet1 = artNetInterface->readDMXPacketContents(&aUDP, packetSize);
 	  if ( read_result_artnet1 == RESULT_NONE ) {				// if not good_dmx or otherwise handled, try 2nd universe
-      read_result_artnet2 = artNetInterfaceUniverse2->readDMXPacketContents(&aUDP, packetSize);
+	  read_result_artnet2 = artNetInterfaceUniverse2->readDMXPacketContents(&aUDP, packetSize);
 	  }
   }
-  
+
 #if defined ( use_multicast )
   packetSize = sUDP.parsePacket();
   if ( packetSize ) {
-    packetSize = sUDP.read(sACNBuffer, SACN_BUFFER_MAX);
-  	read_result_sacn1 = sACNInterface->readDMXPacketContents(&sUDP, packetSize);
+	  packetSize = sUDP.read(sACNBuffer, SACN_BUFFER_MAX);
+	  read_result_sacn1 = sACNInterface->readDMXPacketContents(&sUDP, packetSize);
   }
   // read packet from 2nd multicast address
   packetSize = tUDP.parsePacket();
   if ( packetSize ) {
-    packetSize = tUDP.read(sACNBuffer, SACN_BUFFER_MAX);
-    read_result_sacn2 = sACNInterfaceUniverse2->readDMXPacketContents(&tUDP, packetSize);
+	  packetSize = tUDP.read(sACNBuffer, SACN_BUFFER_MAX);
+	  read_result_sacn2 = sACNInterfaceUniverse2->readDMXPacketContents(&tUDP, packetSize);
   }
 #else
   //assume sender unicasts both universes to same IP address
   packetSize = sUDP.parsePacket();
   if ( packetSize ) {
-    packetSize = sUDP.read(sACNBuffer, SACN_BUFFER_MAX);
-    read_result_sacn1 = sACNInterface->readDMXPacketContents(&sUDP, packetSize);
-    if ( read_result_sacn1 == RESULT_NONE ) {       // if not good_dmx or otherwise handled, try 2nd universe
-      read_result_sacn2 = sACNInterfaceUniverse2->readDMXPacketContents(&sUDP, packetSize);
-    }   // was not dmx first universe
+	  packetSize = sUDP.read(sACNBuffer, SACN_BUFFER_MAX);
+	  read_result_sacn1 = sACNInterface->readDMXPacketContents(&sUDP, packetSize);
+	if ( read_result_sacn1 == RESULT_NONE ) {       // if not good_dmx or otherwise handled, try 2nd universe
+	  read_result_sacn2 = sACNInterfaceUniverse2->readDMXPacketContents(&sUDP, packetSize);
+	}   // was not dmx first universe
   }     // no packetSize
 #endif
 
   if ((read_result_artnet1 == RESULT_DMX_RECEIVED) || (read_result_sacn1 == RESULT_DMX_RECEIVED)) {
-    copyDMX1ToOutput();
-    blinkLED();
+	  copyDMX1ToOutput();
+	  blinkLED();
   } else if ( rdm_enabled ) {
-  	updateRDMDiscovery();
+	  updateRDMDiscovery();
   }
   if ((read_result_artnet2 == RESULT_DMX_RECEIVED) || (read_result_sacn2 == RESULT_DMX_RECEIVED)) {
-    copyDMX2ToOutput();
-    blinkLED2();
+	  copyDMX2ToOutput();
+	  blinkLED2();
   }
 
   uint8_t dhcpr = Ethernet.maintain();
   if (( dhcpr == 4 ) || (dhcpr == 2)) {	//renew/rebind success, update ArtPollReply
-  	artNetInterface->setLocalIP(Ethernet.localIP(), Ethernet.subnetMask());
-  	artNetInterfaceUniverse2->setLocalIP(Ethernet.localIP(), Ethernet.subnetMask());
+	  artNetInterface->setLocalIP(Ethernet.localIP(), Ethernet.subnetMask());
+	  artNetInterfaceUniverse2->setLocalIP(Ethernet.localIP(), Ethernet.subnetMask());
   }
+
 } //loop()

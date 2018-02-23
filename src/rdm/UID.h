@@ -59,7 +59,7 @@ public:
     UID& operator=(const uint8_t *address);
     UID& operator=(UID address);
     
-    static void copyUID(UID id, uint8_t *address, uint16_t index=0) {
+    static void copyFromUID(UID id, uint8_t *address, uint16_t index=0) {
     	memcpy(&address[index], id.bytes, sizeof(id.bytes));
     }
     

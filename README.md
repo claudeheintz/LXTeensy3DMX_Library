@@ -9,6 +9,8 @@ DMX Driver for Teensy 3.x using Teensyduino
    LXTeensyDMX input mode continuously receives DMX once its interrupts have been enabled using startInput()
    Use getSlot() to read the level value for a particular DMX dimmer/address/channel.
    
+   LXTeensyDMX rdm mode allows both sending and receiving. RDM mode can continuously send DMX, the same as when using output mode.  But, RDM mode can also pause regular DMX (zero start code) to send an RDM message and wait for a reply.  RDM mode can also be used to listen for both regular and RDM packets, responding to the RDM messages by sending replies.
+   
    LXTeensyDMX is used with a single instance called Teensy3DMX	
    
    LXTeensyDMX has been tested with Teensy 3.2 and 3.6

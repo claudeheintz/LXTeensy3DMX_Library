@@ -23,7 +23,7 @@
  * Global Variables
 */
 
-uart_hardware_t UART2_hardware = {&KINETISK_UART2, &CORE_PIN7_CONFIG, &CORE_PIN8_CONFIG, &SIM_SCGC4, SIM_SCGC4_UART2, IRQ_UART2_STATUS};
+uart_hardware_t UART2_hardware = {2, &KINETISK_UART2, &CORE_PIN7_CONFIG, &CORE_PIN8_CONFIG, SIM_SCGC4_UART2, IRQ_UART2_STATUS};
 uart_hardware_t* UART2_Hardware = &UART2_hardware;
 
 LXTeensyDMX2 Teensy3DMX2;

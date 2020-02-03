@@ -25,7 +25,7 @@
  * Global&static Variables
 */
 
-uart_hardware_t UART0_hardware = {&KINETISK_UART0, &CORE_PIN0_CONFIG, &CORE_PIN1_CONFIG, &SIM_SCGC4, SIM_SCGC4_UART0, IRQ_UART0_STATUS};
+uart_hardware_t UART0_hardware = {0, &KINETISK_UART0, &CORE_PIN0_CONFIG, &CORE_PIN1_CONFIG, SIM_SCGC4_UART0, IRQ_UART0_STATUS};
 uart_hardware_t* UART0_Hardware = &UART0_hardware;
 
 LXTeensyDMX Teensy3DMX;
@@ -41,9 +41,17 @@ UID LXTeensyDMX::THIS_DEVICE_ID(0x6C, 0x78, 0x00, 0x00, 0x00, 0x03);
 #define HARDWARE_RX_INVERT 1
 
 
-void hardware_uart_set_baud(KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate) {
-  uint32_t divisor = BAUD2DIV(bit_rate);
+void hardware_uart_set_baud(uint8_t uart_num, KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate) {
+
+  uint32_t divisor ;
+  if ( uart_num < 2 ) {
+    divisor = BAUD2DIV(bit_rate);
+  } else {
+    divisor = BAUD2DIV3(bit_rate);
+  }
+  if (divisor < 32) divisor = 32;
 #if defined(HAS_KINETISK_UART0)
+#warning 00000000 HERE
   uart_reg_ptr->BDH = (divisor >> 13) & 0x1F;	//UART0_BDH
   uart_reg_ptr->BDL = (divisor >> 5) & 0xFF;	//UART0_BDL	
   uart_reg_ptr->C4 = divisor & 0x1F;			//UART0_C4
@@ -55,10 +63,10 @@ void hardware_uart_set_baud(KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate) {
 
 void hardware_uart_begin(uart_hardware_t* uart_hardware, void isr_func(void), uint32_t bit_rate, uint8_t c2reg)
 {
-  *(uart_hardware->sys_clk_reg) |= uart_hardware->uart_clk_bit;
+  SIM_SCGC4 |= uart_hardware->uart_clk_bit;
   *(uart_hardware->pconfig0) = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3);
   *(uart_hardware->pconfig1) = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3);
-  hardware_uart_set_baud(uart_hardware->uart_reg_ptr, bit_rate);
+  hardware_uart_set_baud(uart_hardware->uart_num, uart_hardware->uart_reg_ptr, bit_rate);
 #if defined(HAS_KINETISK_UART0)
 	uart_hardware->uart_reg_ptr->C1 = 0;
 	uart_hardware->uart_reg_ptr->PFIFO = 0;				//no fifo
@@ -96,7 +104,7 @@ void hardware_uart_format(KINETISK_UART_t* uart_reg_ptr, uint32_t format)
 
 void hardware_serial_end(uart_hardware_t* uart_hardware)
 {
-  if (!(*(uart_hardware->sys_clk_reg) & uart_hardware->uart_clk_bit)) return;
+  if (!(SIM_SCGC4 & uart_hardware->uart_clk_bit)) return;
   
   NVIC_DISABLE_IRQ(uart_hardware->status_num);
   uart_hardware->uart_reg_ptr->C2 = 0;
@@ -320,7 +328,7 @@ void LXTeensyDMX::transmitComplete( void ) {
 		  _rdm_task_mode = DMX_TASK_RECEIVE;
 		  
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
-		  hardware_uart_set_baud(_uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
+		  hardware_uart_set_baud(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
 		  _dmx_state = DMX_STATE_START;
 		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
 		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;
@@ -329,7 +337,7 @@ void LXTeensyDMX::transmitComplete( void ) {
 	} else if ( _rdm_task_mode ) {					//should be DMX_TASK_SEND if sending and not using RDM
 
 		if ( _dmx_state == DMX_STATE_IDLE ) {
-		  hardware_uart_set_baud(_uart_hardware->uart_reg_ptr, DMX_BREAK_BAUD);
+		  hardware_uart_set_baud(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_BREAK_BAUD);
 		  _dmx_state = DMX_STATE_BREAK;
 		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
 		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;
@@ -342,7 +350,7 @@ void LXTeensyDMX::transmitComplete( void ) {
 		  }
 		  
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
-		  hardware_uart_set_baud(_uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
+		  hardware_uart_set_baud(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
 		  _dmx_state = DMX_STATE_START;
 		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
 		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;

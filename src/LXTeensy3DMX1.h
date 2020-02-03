@@ -1,5 +1,5 @@
 /* LXTeensy3DMX1.h
-   Copyright 2016 by Claude Heintz Design
+   Copyright 2016-2020 by Claude Heintz Design
    All rights reserved.
    For license see LXTeensyDMX.h or http://www.claudeheintzdesign.com/lx/opensource.html
 -----------------------------------------------------------------------------------
@@ -10,8 +10,6 @@
 
 #include "LXTeensy3DMX.h"
 
-typedef void (*LXRecvCallback)(int);
-
 
 class LXTeensyDMX1 : public LXTeensyDMX {
 
@@ -20,22 +18,12 @@ class LXTeensyDMX1 : public LXTeensyDMX {
 	LXTeensyDMX1  ( void );
    ~LXTeensyDMX1 ( void );
    
-   void startOutput( void );
-   void startInput( void );
-   void stop( void );
-   
-   void setMaxSlots (int slot);
-	void setDataReceivedCallback(LXRecvCallback callback);
 };
 
 extern LXTeensyDMX1 Teensy3DMX1;
 
 
-// functions
-void serial_two_set_baud(uint32_t bit_rate);
-void serial_two_begin(uint32_t bit_rate);
-void serial_two_format(uint32_t format);
-void serial_two_end(void);
+// isr function
 void lx_uart1_status_isr(void);
 
 

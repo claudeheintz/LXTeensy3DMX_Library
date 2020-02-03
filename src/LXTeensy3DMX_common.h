@@ -1,5 +1,5 @@
 /* LXTeensy3DMX_utility.h
-   Copyright 2017 by Claude Heintz Design
+   Copyright 2017-2020 by Claude Heintz Design
    All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

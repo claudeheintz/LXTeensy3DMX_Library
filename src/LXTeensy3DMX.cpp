@@ -3,13 +3,15 @@
     @file     LXTeensy3DMX.cpp
     @author   Claude Heintz
     @license  See LXTeensy3DMX.h or http://www.claudeheintzdesign.com/lx/opensource.html
-    @copyright 2016-2017 by Claude Heintz
+    @copyright 2016-2020 by Claude Heintz
     
     DMX Driver for Arduino using USART.
 
     @section  HISTORY
 
     v1.0 - First release
+    v2.0 - abstracted UART Hardware
+    
 */
 /**************************************************************************/
 
@@ -23,6 +25,9 @@
  * Global&static Variables
 */
 
+uart_hardware_t UART0_hardware = {&KINETISK_UART0, &CORE_PIN0_CONFIG, &CORE_PIN1_CONFIG, &SIM_SCGC4, SIM_SCGC4_UART0, IRQ_UART0_STATUS};
+uart_hardware_t* UART0_Hardware = &UART0_hardware;
+
 LXTeensyDMX Teensy3DMX;
 
 UID LXTeensyDMX::THIS_DEVICE_ID(0x6C, 0x78, 0x00, 0x00, 0x00, 0x03);
@@ -35,109 +40,88 @@ UID LXTeensyDMX::THIS_DEVICE_ID(0x6C, 0x78, 0x00, 0x00, 0x00, 0x03);
 
 #define HARDWARE_RX_INVERT 1
 
-void serial_one_set_baud(uint32_t bit_rate) {
+
+void hardware_uart_set_baud(KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate) {
   uint32_t divisor = BAUD2DIV(bit_rate);
 #if defined(HAS_KINETISK_UART0)
-  UART0_BDH = (divisor >> 13) & 0x1F;
-  UART0_BDL = (divisor >> 5) & 0xFF;
-  UART0_C4 = divisor & 0x1F;
+  uart_reg_ptr->BDH = (divisor >> 13) & 0x1F;	//UART0_BDH
+  uart_reg_ptr->BDL = (divisor >> 5) & 0xFF;	//UART0_BDL	
+  uart_reg_ptr->C4 = divisor & 0x1F;			//UART0_C4
 #elif defined(HAS_KINETISL_UART0)
-  UART0_BDH = (divisor >> 8) & 0x1F;
-  UART0_BDL = divisor & 0xFF;
+  uart_reg_ptr->BDH  = (divisor >> 8) & 0x1F;
+  uart_reg_ptr->BDL = divisor & 0xFF;
 #endif
 }
 
-void serial_one_begin(uint32_t bit_rate, uint8_t c2reg)
+void hardware_uart_begin(uart_hardware_t* uart_hardware, void isr_func(void), uint32_t bit_rate, uint8_t c2reg)
 {
-  SIM_SCGC4 |= SIM_SCGC4_UART0;
-  CORE_PIN0_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3);
-  CORE_PIN1_CONFIG = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3);
-  serial_one_set_baud(bit_rate);
+  *(uart_hardware->sys_clk_reg) |= uart_hardware->uart_clk_bit;
+  *(uart_hardware->pconfig0) = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_PFE | PORT_PCR_MUX(3);
+  *(uart_hardware->pconfig1) = PORT_PCR_DSE | PORT_PCR_SRE | PORT_PCR_MUX(3);
+  hardware_uart_set_baud(uart_hardware->uart_reg_ptr, bit_rate);
 #if defined(HAS_KINETISK_UART0)
-	UART0_C1 = 0;
-	UART0_PFIFO = 0;				//no fifo
+	uart_hardware->uart_reg_ptr->C1 = 0;
+	uart_hardware->uart_reg_ptr->PFIFO = 0;				//no fifo
 #elif defined(HAS_KINETISL_UART0)
-  UART0_C1 = 0;
+  uart_hardware->uart_reg_ptr->C1 = 0;
 #endif
-  attachInterruptVector(IRQ_UART0_STATUS, lx_uart0_status_isr);
-  UART0_C2 = c2reg;
-  NVIC_SET_PRIORITY(IRQ_UART0_STATUS, DMX_UART_IRQ_PRIORITY);
-  NVIC_ENABLE_IRQ(IRQ_UART0_STATUS);
+  attachInterruptVector(uart_hardware->status_num, isr_func);
+  uart_hardware->uart_reg_ptr->C2 = c2reg;
+  NVIC_SET_PRIORITY(uart_hardware->status_num, DMX_UART_IRQ_PRIORITY);
+  NVIC_ENABLE_IRQ(uart_hardware->status_num);
 }
 
-void serial_one_format(uint32_t format)
+void hardware_uart_format(KINETISK_UART_t* uart_reg_ptr, uint32_t format)
 {
   uint8_t c;
 
-  c = UART0_C1;
+  c = uart_reg_ptr->C1;
   c = (c & ~0x13) | (format & 0x03);  // configure parity
   if (format & 0x04) c |= 0x10;   // 9 bits (might include parity)
-  UART0_C1 = c;
-  if ((format & 0x0F) == 0x04) UART0_C3 |= 0x40; // 8N2 is 9 bit with 9th bit always 1
-  c = UART0_S2 & ~0x10;
+  uart_reg_ptr->C1 = c;
+  if ((format & 0x0F) == 0x04) uart_reg_ptr->C3 |= 0x40; // 8N2 is 9 bit with 9th bit always 1
+  c = uart_reg_ptr->S2 & ~0x10;
   if (format & 0x10) c |= 0x10;   // rx invert
-  UART0_S2 = c;
-  c = UART0_C3 & ~0x10;
+  uart_reg_ptr->S2 = c;
+  c = uart_reg_ptr->C3 & ~0x10;
   if (format & 0x20) c |= 0x10;   // tx invert
-  UART0_C3 = c;
+  uart_reg_ptr->C3 = c;
 #ifdef SERIAL_9BIT_SUPPORT
-  c = UART0_C4 & 0x1F;
+  c = uart_reg_ptr->C4 & 0x1F;
   if (format & 0x08) c |= 0x20;   // 9 bit mode with parity (requires 10 bits)
-  UART0_C4 = c;
+  uart_reg_ptr->C4 = c;
   use9Bits = format & 0x80;
 #endif
 }
 
-void serial_one_end(void)
+void hardware_serial_end(uart_hardware_t* uart_hardware)
 {
-  if (!(SIM_SCGC4 & SIM_SCGC4_UART0)) return;
-  NVIC_DISABLE_IRQ(IRQ_UART0_STATUS);
-  UART0_C2 = 0;
-  CORE_PIN0_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
-  CORE_PIN1_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
+  if (!(*(uart_hardware->sys_clk_reg) & uart_hardware->uart_clk_bit)) return;
+  
+  NVIC_DISABLE_IRQ(uart_hardware->status_num);
+  uart_hardware->uart_reg_ptr->C2 = 0;
+  *(uart_hardware->pconfig0) = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
+  *(uart_hardware->pconfig1) = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
 }
 
 void lx_uart0_status_isr(void)
 {
-
-	
-	uint8_t incoming_byte = UART0_D;					// read buffer to clear interrupt flag (should go here or below?)
-  
-	  if ( UART0_S1 & UART_S1_FE ) {					// framing error
-			Teensy3DMX.breakReceived(); 
-			return;										// do not call byteReceived if framing error
-	  }	
-  
-	  if ( UART0_S1 & UART_S1_RDRF ) {					// receive register full
-			Teensy3DMX.byteReceived(incoming_byte);
-	  }			// receive register full
-  
-			// framing error
-	
-
-	
-// ********************** send portion of isr
-
-  uint8_t c = UART0_C2;
-
-  if ((c & UART_C2_TIE) && (UART0_S1 & UART_S1_TDRE)) {   // transmit empty
-	Teensy3DMX.transmitEmpty();
-	return;
-  }   		// transmit empty
-
-  if ((c & UART_C2_TCIE) && (UART0_S1 & UART_S1_TC)) {    // transmit complete
-	Teensy3DMX.transmitComplete();
-	return;
-  }				// transmit complete
-	  
-	
+  Teensy3DMX.uartISR();
 }					//uart0_status_isr()
 
 
 //*****************************************************************************
 // ************************  LXTeensyDMX member functions  ********************
 
-LXTeensyDMX::LXTeensyDMX ( void ) {
+/*
+LXTeensyDMX::LXTeensyDMX ( uart_hardware_t*  u ) {
+	LXTeensyDMX( (uart_hardware_t* )NULL);
+}*/
+
+LXTeensyDMX::LXTeensyDMX (  ) {
+    _uart_hardware = UART0_Hardware;
+    _isr_func = &lx_uart0_status_isr;
+    
 	_direction_pin = DIRECTION_PIN_NOT_USED;	//optional
 	_slots = DMX_MAX_SLOTS;
 	_interrupt_status = ISR_DISABLED;
@@ -162,8 +146,8 @@ void LXTeensyDMX::startOutput ( void ) {
 		stop();
 	}
 	if ( _interrupt_status == ISR_DISABLED ) {	//prevent messing up sequence if already started...
-		serial_one_begin(DMX_BREAK_BAUD, C2_TX_ENABLE);
-  		serial_one_format(SERIAL_8N2);
+		hardware_uart_begin(_uart_hardware, _isr_func, DMX_BREAK_BAUD, C2_TX_ENABLE);
+  		hardware_uart_format(_uart_hardware->uart_reg_ptr, SERIAL_8N2);
 
 		//_shared_dmx_data = dmxData();
 		_rdm_task_mode = DMX_TASK_SEND;
@@ -171,9 +155,9 @@ void LXTeensyDMX::startOutput ( void ) {
 		_dmx_state = DMX_STATE_BREAK;
 		_interrupt_status = ISR_OUTPUT_ENABLED;
 			
-		UART0_D = 0x0;						//byte to tx register
-  		UART0_C2 &= ~UART_C2_TIE;		//disable tx empty interrupt
-  		UART0_C2 |= UART_C2_TCIE;		//enable transmission complete interrupt (end of break...)
+		_uart_hardware->uart_reg_ptr->D = 0x0;						//byte to tx register
+  		_uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TIE;		//disable tx empty interrupt
+  		_uart_hardware->uart_reg_ptr->C2 |= UART_C2_TCIE;		//enable transmission complete interrupt (end of break...)
 	}
 }
 
@@ -184,20 +168,20 @@ void LXTeensyDMX::startInput ( uint8_t invert_rx ) {
 	if ( _interrupt_status == ISR_OUTPUT_ENABLED ) {
 		stop();
 	}
-	if ( _interrupt_status == ISR_DISABLED ) {	//prevent messing up sequence if already started...
+	if ( _interrupt_status == ISR_DISABLED ) {	//prevent messing up sequence if already started..
 		//_shared_dmx_data = dmxData();
 		_rdm_task_mode = DMX_TASK_RECEIVE;
 		_rdm_read_handled = 0;
 		_current_slot = 0;              
 		_dmx_state = DMX_STATE_IDLE;
 		
-		serial_one_begin(DMX_DATA_BAUD, C2_RX_ENABLE);
-		serial_one_format(SERIAL_8N2);
+		hardware_uart_begin(_uart_hardware, lx_uart0_status_isr, DMX_BREAK_BAUD, C2_RX_ENABLE);
+		hardware_uart_format(_uart_hardware->uart_reg_ptr, SERIAL_8N2);
 
 		_interrupt_status = ISR_INPUT_ENABLED;
 		
 		if ( invert_rx ) {
-			UART0_S2 |= 0x10;   					// rx inverted signal
+			_uart_hardware->uart_reg_ptr->S2 |= 0x10;   					// rx inverted signal
 		}
 	}
 }
@@ -207,10 +191,10 @@ void LXTeensyDMX::startRDM( uint8_t pin, uint8_t direction, uint8_t invert_rx ) 
 	_direction_pin = pin;
 	if ( direction ) {
 		startOutput();							//enables transmit interrupt
-		UART0_C2 |= C2_RX_ENABLE;				//enable receive interrupt
+		_uart_hardware->uart_reg_ptr->C2 |= C2_RX_ENABLE;				//enable receive interrupt
 		
 		if ( invert_rx ) {
-			UART0_S2 |= 0x10;   					// rx inverted signal
+			_uart_hardware->uart_reg_ptr->S2 |= 0x10;   					// rx inverted signal
 		}
 	} else {
 		startInput(invert_rx);
@@ -218,10 +202,10 @@ void LXTeensyDMX::startRDM( uint8_t pin, uint8_t direction, uint8_t invert_rx ) 
 }
 
 void LXTeensyDMX::stop ( void ) { 
-	NVIC_DISABLE_IRQ(IRQ_UART0_STATUS);
-	UART0_C2 = 0;
-	CORE_PIN0_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
-	CORE_PIN1_CONFIG = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
+	NVIC_DISABLE_IRQ(_uart_hardware->status_num);
+  _uart_hardware->uart_reg_ptr->C2 = 0;
+  *(_uart_hardware->pconfig0) = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
+  *(_uart_hardware->pconfig1) = PORT_PCR_PE | PORT_PCR_PS | PORT_PCR_MUX(1);
 	_interrupt_status = ISR_DISABLED;
 }
 
@@ -276,18 +260,18 @@ void LXTeensyDMX::transmitEmpty( void ) {
 	if ( _rdm_task_mode == DMX_TASK_SEND_RDM ) {
 
 		if ( _dmx_state == DMX_STATE_DATA ) {
-		  UART0_D = _rdmPacket[_next_slot++];	//send next slot
+		  _uart_hardware->uart_reg_ptr->D = _rdmPacket[_next_slot++];	//send next slot
 		  if ( _next_slot >= _rdm_len ) {		//0 based index
 			 _dmx_state = DMX_STATE_IDLE;
-			 UART0_C2 &= ~UART_C2_TIE;
-			 UART0_C2 |= UART_C2_TCIE;			//switch to wait for tx complete
+			 _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TIE;
+			 _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TCIE;			//switch to wait for tx complete
 		  }
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
-		  UART0_C2 &= ~UART_C2_TIE;
-		  UART0_C2 |= UART_C2_TCIE;			//switch to wait for tx complete
-		  UART0_D = 0;						//send break
+		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TIE;
+		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TCIE;			//switch to wait for tx complete
+		  _uart_hardware->uart_reg_ptr->D = 0;						//send break
 		} else if ( _dmx_state == DMX_STATE_START ) {
-		  UART0_D = _rdmPacket[0];			// start code
+		  _uart_hardware->uart_reg_ptr->D = _rdmPacket[0];			// start code
 		  _dmx_state = DMX_STATE_DATA;
 		  _next_slot = 1;
 		}	
@@ -295,18 +279,18 @@ void LXTeensyDMX::transmitEmpty( void ) {
 	} else if ( _rdm_task_mode ) {					//should be DMX_TASK_SEND even if not RDM
 		
 		if ( _dmx_state == DMX_STATE_DATA ) {
-		  UART0_D = _dmxData[_next_slot++];	//send next slot
+		  _uart_hardware->uart_reg_ptr->D = _dmxData[_next_slot++];	//send next slot
 		  if ( _next_slot > _slots ) {		//slots are 1 based index so OK to use > , index[512] is slot 512
 			 _dmx_state = DMX_STATE_IDLE;
-			 UART0_C2 &= ~UART_C2_TIE;
-			 UART0_C2 |= UART_C2_TCIE;			//switch to wait for tx complete
+			 _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TIE;
+			 _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TCIE;			//switch to wait for tx complete
 		  }
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
-		  UART0_C2 &= ~UART_C2_TIE;
-		  UART0_C2 |= UART_C2_TCIE;			//switch to wait for tx complete
-		  UART0_D = 0;						//send break
+		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TIE;
+		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TCIE;			//switch to wait for tx complete
+		  _uart_hardware->uart_reg_ptr->D = 0;						//send break
 		} else if ( _dmx_state == DMX_STATE_START ) {
-		  UART0_D = _dmxData[0];		// start code
+		  _uart_hardware->uart_reg_ptr->D = _dmxData[0];		// start code
 		  _dmx_state = DMX_STATE_DATA;
 		  _next_slot = 1;
 		}
@@ -322,8 +306,8 @@ void LXTeensyDMX::transmitComplete( void ) {
 		  _dmx_state = DMX_STATE_IDLE;				//sets baud to break next transmit complete interrupt
 		  // Packet complete, change to receive
 
-		  UART0_C2 &= ~UART_C2_TCIE;				//disable send interrupts
-		  UART0_C2 &= ~UART_C2_TIE;
+		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;				//disable send interrupts
+		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TIE;
 		  
 		  digitalWrite(_direction_pin, LOW);		// call from interrupt only because receiving starts
 		  _current_slot = 0;						// and these flags need to be set
@@ -336,19 +320,19 @@ void LXTeensyDMX::transmitComplete( void ) {
 		  _rdm_task_mode = DMX_TASK_RECEIVE;
 		  
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
-		  serial_one_set_baud(DMX_DATA_BAUD);
+		  hardware_uart_set_baud(_uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
 		  _dmx_state = DMX_STATE_START;
-		  UART0_C2 &= ~UART_C2_TCIE;
-		  UART0_C2 |= UART_C2_TIE;
+		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
+		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;
 		}
 		
 	} else if ( _rdm_task_mode ) {					//should be DMX_TASK_SEND if sending and not using RDM
 
 		if ( _dmx_state == DMX_STATE_IDLE ) {
-		  serial_one_set_baud(DMX_BREAK_BAUD);
+		  hardware_uart_set_baud(_uart_hardware->uart_reg_ptr, DMX_BREAK_BAUD);
 		  _dmx_state = DMX_STATE_BREAK;
-		  UART0_C2 &= ~UART_C2_TCIE;
-		  UART0_C2 |= UART_C2_TIE;
+		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
+		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;
 		  
 		  // Packet complete, change _rdm_task_mode if flag indicates
 		  if ( _rdm_task_mode == DMX_TASK_SET_SEND ) {
@@ -358,10 +342,10 @@ void LXTeensyDMX::transmitComplete( void ) {
 		  }
 		  
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
-		  serial_one_set_baud(DMX_DATA_BAUD);
+		  hardware_uart_set_baud(_uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
 		  _dmx_state = DMX_STATE_START;
-		  UART0_C2 &= ~UART_C2_TCIE;
-		  UART0_C2 |= UART_C2_TIE;
+		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
+		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;
 		}
 		
 	}
@@ -468,8 +452,8 @@ void LXTeensyDMX::restoreTaskSendDMX( void ) {		// only valid if connection star
 	_rdm_task_mode = DMX_TASK_SET_SEND;
 	 
 	 //restore the interrupts
-	UART0_C2 &= ~UART_C2_TIE;		//disable tx empty interrupt
-	UART0_C2 |= UART_C2_TCIE;		//enable transmission complete interrupt (end of break...)
+	_uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TIE;		//disable tx empty interrupt
+	_uart_hardware->uart_reg_ptr->C2 |= UART_C2_TCIE;		//enable transmission complete interrupt (end of break...)
   							
 	 do {
 	 	delay(1);
@@ -501,8 +485,8 @@ void LXTeensyDMX::sendRawRDMPacket( uint8_t len ) {		// only valid if connection
 		digitalWrite(_direction_pin, HIGH);
 		_dmx_state = DMX_STATE_BREAK;
 		 //set the interrupts			//will be disable when packet is complete
-		UART0_C2 &= ~UART_C2_TIE;		//disable tx empty interrupt
-		UART0_C2 |= UART_C2_TCIE;		//enable transmission complete interrupt (end of break...)
+		_uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TIE;		//disable tx empty interrupt
+		_uart_hardware->uart_reg_ptr->C2 |= UART_C2_TCIE;		//enable transmission complete interrupt (end of break...)
 	}
 	
 	while ( _rdm_task_mode ) {	//wait for packet to be sent and listening to start
@@ -708,4 +692,40 @@ uint8_t LXTeensyDMX::sendRDMSetCommand(UID target, uint16_t pid, uint8_t* info, 
 	}
 	
 	return rv;
+}
+
+// ***** protected member function ******
+
+void LXTeensyDMX::uartISR( void ) {
+  uint8_t incoming_byte = _uart_hardware->uart_reg_ptr->D;					// read buffer to clear interrupt flag (should go here or below?)
+  
+  if ( _uart_hardware->uart_reg_ptr->S1 & UART_S1_FE ) {					// framing error
+		breakReceived(); 
+		return;										// do not call byteReceived if framing error
+  }	
+
+  if ( _uart_hardware->uart_reg_ptr->S1 & UART_S1_RDRF ) {					// receive register full
+		byteReceived(incoming_byte);
+  }			// receive register full
+  
+			// framing error
+	
+
+	
+// ********************** send portion of isr
+
+  uint8_t c = _uart_hardware->uart_reg_ptr->C2;
+
+  if ((c & UART_C2_TIE) && (_uart_hardware->uart_reg_ptr->S1 & UART_S1_TDRE)) {   // transmit empty
+	transmitEmpty();
+	return;
+  }   		// transmit empty
+
+  if ((c & UART_C2_TCIE) && (_uart_hardware->uart_reg_ptr->S1 & UART_S1_TC)) {    // transmit complete
+	transmitComplete();
+	return;
+  }				// transmit complete
+	  
+	
+
 }

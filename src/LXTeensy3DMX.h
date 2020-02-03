@@ -1,5 +1,5 @@
 /* LXTeensy3DMX.h
-   Copyright 2016 by Claude Heintz Design
+   Copyright 2016-2020 by Claude Heintz Design
    All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,6 +66,15 @@ TX (1) |----------------------| 4 DI   Gnd 5 |---+------------ Pin 1
 
 typedef void (*LXRecvCallback)(int);
 
+typedef struct {
+		KINETISK_UART_t * uart_reg_ptr;
+		volatile uint32_t* pconfig0;
+		volatile uint32_t* pconfig1;
+		volatile uint32_t* sys_clk_reg;
+		uint32_t uart_clk_bit;
+		IRQ_NUMBER_t status_num;
+	} uart_hardware_t;
+
 /*!   
 @class LXTeensyDMX
 @abstract
@@ -81,11 +90,13 @@ typedef void (*LXRecvCallback)(int);
    LXTeensyDMX is used with a single instance called Teensy3DMX	.
 */
 
+
+
 class LXTeensyDMX {
 
   public:
   
-	LXTeensyDMX  ( void );
+  	LXTeensyDMX  ( void );
    ~LXTeensyDMX ( void );
     
    /*!
@@ -345,7 +356,23 @@ class LXTeensyDMX {
     
     static UID THIS_DEVICE_ID;
     
+    /*!
+    * @brief the all important ISR function
+	* @discussion Called by UART interrupt
+    */
+    void uartISR( void );
+    
   protected:
+   /*!
+    * @brief struct defining uart configuration and pointer to registers
+   */
+  	uart_hardware_t*  _uart_hardware;
+  	
+  	/*!
+    * @brief function pointer to isr
+   */
+  	void (* _isr_func) (void);
+  	
    /*!
     * @brief Indicates mode ISR_OUTPUT_ENABLED or ISR_INPUT_ENABLED or ISR_DISABLED
    */
@@ -444,7 +471,7 @@ extern LXTeensyDMX Teensy3DMX;
 /**************************************************************************************/
 
 	//***** baud rate defines
-    #define DMX_DATA_BAUD		250000
+    #define DMX_DATA_BAUD	250000
     #define DMX_BREAK_BAUD 	90000
     //99900
 
@@ -497,10 +524,11 @@ extern LXTeensyDMX Teensy3DMX;
 #define C2_RX_ENABLE   UART_C2_RE | UART_C2_RIE
 
 // functions
-void serial_one_set_baud(uint32_t bit_rate);
-void serial_one_begin(uint32_t bit_rate);
-void serial_one_format(uint32_t format);
-void serial_one_end(void);
+void hardware_uart_set_baud(KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate);
+void hardware_uart_begin(uart_hardware_t* uart_hardware, void isr_func(void), uint32_t bit_rate, uint8_t c2reg);
+void hardware_uart_format(KINETISK_UART_t * uart_reg_ptr, uint32_t format);
+void hardware_serial_end(uart_hardware_t* uart_hardware);
+
 void lx_uart0_status_isr(void);
 
 /* License for Teensyduino Core Library

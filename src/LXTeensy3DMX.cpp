@@ -51,7 +51,6 @@ void hardware_uart_set_baud(uint8_t uart_num, KINETISK_UART_t * uart_reg_ptr, ui
   }
   if (divisor < 32) divisor = 32;
 #if defined(HAS_KINETISK_UART0)
-#warning 00000000 HERE
   uart_reg_ptr->BDH = (divisor >> 13) & 0x1F;	//UART0_BDH
   uart_reg_ptr->BDL = (divisor >> 5) & 0xFF;	//UART0_BDL	
   uart_reg_ptr->C4 = divisor & 0x1F;			//UART0_C4

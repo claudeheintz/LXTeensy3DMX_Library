@@ -517,14 +517,27 @@ extern LXTeensyDMX Teensy3DMX;
 
 #define DMX_UART_IRQ_PRIORITY  64  // 0 = highest priority, 255 = lowest
 
+#ifndef SERIAL_8N1
+
 #define SERIAL_8N1 0x00
-#define SERIAL_8N2 0x04
+#if defined(__MK64FX512__) || defined(__MK66FX1M0__) || defined(KINETISL)
+  #define SERIAL_8N2 0x100
+#else
+  #define SERIAL_8N2 0x04
+#endif
+
+// define bits to set in BDH, UART_BDH_SBNS (0x20) for two stop bits, UART_S2_LBKDIF or 0x80 for break detect interrupt
+#define UART_BDH_BITS (UART_BDH_SBNS | UART_S2_LBKDIF)
 
 #define C2_TX_ENABLE   UART_C2_TE
 #define C2_RX_ENABLE   UART_C2_RE | UART_C2_RIE
 
+#endif   // <- SERIAL_8N1 ndef
+
 // functions
+void hardware_uart_set_bits_in_bdh(KINETISK_UART_t* uart_reg_ptr, uint8_t bits);
 void hardware_uart_set_baud(uint8_t uart_num, KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate);
+void hardware_uart_set_baud_2s(uint8_t uart_num, KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate);
 void hardware_uart_begin(uart_hardware_t* uart_hardware, void isr_func(void), uint32_t bit_rate, uint8_t c2reg);
 void hardware_uart_format(KINETISK_UART_t * uart_reg_ptr, uint32_t format);
 void hardware_serial_end(uart_hardware_t* uart_hardware);

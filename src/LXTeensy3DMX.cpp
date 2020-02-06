@@ -38,8 +38,11 @@ UID LXTeensyDMX::THIS_DEVICE_ID(0x6C, 0x78, 0x00, 0x00, 0x00, 0x03);
 */
 
 
-#define HARDWARE_RX_INVERT 1
-
+void hardware_uart_set_bits_in_bdh(KINETISK_UART_t* uart_reg_ptr, uint8_t bits) {		// for two stop bits pass UART_BDH_SBNS
+	uint8_t bdl = uart_reg_ptr->BDL;
+	uart_reg_ptr->BDH |= bits;		// Turn on 2 stop bits - was turned off by set baud
+	uart_reg_ptr->BDL = bdl;		// Says BDH not acted on until BDL is written
+}
 
 void hardware_uart_set_baud(uint8_t uart_num, KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate) {
 
@@ -60,6 +63,17 @@ void hardware_uart_set_baud(uint8_t uart_num, KINETISK_UART_t * uart_reg_ptr, ui
 #endif
 }
 
+void hardware_uart_set_baud_2s(uint8_t uart_num, KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate) {
+
+	hardware_uart_set_baud(uart_num, uart_reg_ptr, bit_rate);
+	
+	// restore 2 stop bit mode when changing baud from DMX to Break
+	#if defined(__MK64FX512__) || defined(__MK66FX1M0__) || defined(KINETISL)
+	// For T3.5/T3.6/TLC See about turning on 2 stop bit mode
+		hardware_uart_set_bits_in_bdh(uart_reg_ptr, UART_BDH_BITS);
+    #endif
+}
+
 void hardware_uart_begin(uart_hardware_t* uart_hardware, void isr_func(void), uint32_t bit_rate, uint8_t c2reg)
 {
   SIM_SCGC4 |= uart_hardware->uart_clk_bit;
@@ -78,7 +92,7 @@ void hardware_uart_begin(uart_hardware_t* uart_hardware, void isr_func(void), ui
   NVIC_ENABLE_IRQ(uart_hardware->status_num);
 }
 
-void hardware_uart_format(KINETISK_UART_t* uart_reg_ptr, uint32_t format)
+void hardware_uart_format(KINETISK_UART_t * uart_reg_ptr, uint32_t format)
 {
   uint8_t c;
 
@@ -94,10 +108,17 @@ void hardware_uart_format(KINETISK_UART_t* uart_reg_ptr, uint32_t format)
   if (format & 0x20) c |= 0x10;   // tx invert
   uart_reg_ptr->C3 = c;
 #ifdef SERIAL_9BIT_SUPPORT
+#warning SERIAL_9BIT_SUPPORT
   c = uart_reg_ptr->C4 & 0x1F;
   if (format & 0x08) c |= 0x20;   // 9 bit mode with parity (requires 10 bits)
-  uart_reg_ptr->C4 = c;
+  uart_reg_ptr->C4 = c;(KINETISK_UART_t* uart_reg_ptr, uint32_t format)
   use9Bits = format & 0x80;
+#endif
+#if defined(__MK64FX512__) || defined(__MK66FX1M0__) || defined(KINETISL)
+	// For T3.5/T3.6/TLC See about turning on 2 stop bit mode
+	if ( format & 0x100) {							// 0x100 is 2 stop bits if this is compiled
+		hardware_uart_set_bits_in_bdh(uart_reg_ptr, UART_BDH_BITS);
+	}
 #endif
 }
 
@@ -327,7 +348,7 @@ void LXTeensyDMX::transmitComplete( void ) {
 		  _rdm_task_mode = DMX_TASK_RECEIVE;
 		  
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
-		  hardware_uart_set_baud(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
+		  hardware_uart_set_baud_2s(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
 		  _dmx_state = DMX_STATE_START;
 		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
 		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;
@@ -336,7 +357,7 @@ void LXTeensyDMX::transmitComplete( void ) {
 	} else if ( _rdm_task_mode ) {					//should be DMX_TASK_SEND if sending and not using RDM
 
 		if ( _dmx_state == DMX_STATE_IDLE ) {
-		  hardware_uart_set_baud(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_BREAK_BAUD);
+		  hardware_uart_set_baud_2s(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_BREAK_BAUD);
 		  _dmx_state = DMX_STATE_BREAK;
 		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
 		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;
@@ -349,7 +370,7 @@ void LXTeensyDMX::transmitComplete( void ) {
 		  }
 		  
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
-		  hardware_uart_set_baud(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
+		  hardware_uart_set_baud_2s(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
 		  _dmx_state = DMX_STATE_START;
 		  _uart_hardware->uart_reg_ptr->C2 &= ~UART_C2_TCIE;
 		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_TIE;
@@ -710,12 +731,19 @@ void LXTeensyDMX::uartISR( void ) {
 		breakReceived(); 
 		return;										// do not call byteReceived if framing error
   }	
+  
+  if ( _uart_hardware->uart_reg_ptr->S2 & UART_S2_LBKDIF ) {					// break detect
+        _uart_hardware->uart_reg_ptr->S2 |= UART_S2_LBKDIF;                     // clear breakflag
+		breakReceived(); 
+		return;										// do not call byteReceived if break detected
+  }
 
   if ( _uart_hardware->uart_reg_ptr->S1 & UART_S1_RDRF ) {					// receive register full
 		byteReceived(incoming_byte);
   }			// receive register full
   
-			// framing error
+
+  
 	
 
 	

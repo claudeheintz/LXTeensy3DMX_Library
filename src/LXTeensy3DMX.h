@@ -526,8 +526,8 @@ extern LXTeensyDMX Teensy3DMX;
   #define SERIAL_8N2 0x04
 #endif
 
-// define bits to set in BDH, UART_BDH_SBNS (0x20) for two stop bits, UART_S2_LBKDIF or 0x80 for break detect interrupt
-#define UART_BDH_BITS (UART_BDH_SBNS | UART_S2_LBKDIF)
+// define bits to set in BDH, UART_BDH_SBNS (0x20) for two stop bits // | UART_S2_LBKDIF) to enable break detect
+#define UART_BDH_BITS UART_BDH_SBNS
 
 #define C2_TX_ENABLE   UART_C2_TE
 #define C2_RX_ENABLE   UART_C2_RE | UART_C2_RIE

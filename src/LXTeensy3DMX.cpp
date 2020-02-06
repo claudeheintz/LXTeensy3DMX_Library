@@ -732,11 +732,13 @@ void LXTeensyDMX::uartISR( void ) {
 		return;										// do not call byteReceived if framing error
   }	
   
+  /* experimental break detect for Teensy 3.6
   if ( _uart_hardware->uart_reg_ptr->S2 & UART_S2_LBKDIF ) {					// break detect
         _uart_hardware->uart_reg_ptr->S2 |= UART_S2_LBKDIF;                     // clear breakflag
 		breakReceived(); 
 		return;										// do not call byteReceived if break detected
   }
+  */
 
   if ( _uart_hardware->uart_reg_ptr->S1 & UART_S1_RDRF ) {					// receive register full
 		byteReceived(incoming_byte);

@@ -47,8 +47,10 @@ void hardware_uart_set_bits_in_bdh(KINETISK_UART_t* uart_reg_ptr, uint8_t bits) 
 void hardware_uart_set_baud(uint8_t uart_num, KINETISK_UART_t * uart_reg_ptr, uint32_t bit_rate) {
 
   uint32_t divisor ;
-  if ( uart_num < 2 ) {
+  if ( uart_num == 0 ) {
     divisor = BAUD2DIV(bit_rate);
+  } else if ( uart_num == 1 ) {
+    divisor = BAUD2DIV2(bit_rate);
   } else {
     divisor = BAUD2DIV3(bit_rate);
   }
@@ -82,7 +84,7 @@ void hardware_uart_begin(uart_hardware_t* uart_hardware, void isr_func(void), ui
   hardware_uart_set_baud(uart_hardware->uart_num, uart_hardware->uart_reg_ptr, bit_rate);
 #if defined(HAS_KINETISK_UART0)
 	uart_hardware->uart_reg_ptr->C1 = 0;
-	uart_hardware->uart_reg_ptr->PFIFO = 0;				//no fifo
+	uart_hardware->uart_reg_ptr->PFIFO = 0;				//no fifo, need to flush RX & TX per manual??
 #elif defined(HAS_KINETISL_UART0)
   uart_hardware->uart_reg_ptr->C1 = 0;
 #endif

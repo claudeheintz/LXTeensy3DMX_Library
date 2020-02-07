@@ -205,7 +205,7 @@ void LXTeensyDMX::startInput ( uint8_t invert_rx ) {
 		_current_slot = 0;              
 		_dmx_state = DMX_STATE_IDLE;
 		
-		hardware_uart_begin(_uart_hardware, lx_uart0_status_isr, DMX_BREAK_BAUD, C2_RX_ENABLE);
+		hardware_uart_begin(_uart_hardware, lx_uart0_status_isr, DMX_DATA_BAUD, C2_RX_ENABLE);
 		hardware_uart_format(_uart_hardware->uart_reg_ptr, SERIAL_8N2);
 
 		_interrupt_status = ISR_INPUT_ENABLED;

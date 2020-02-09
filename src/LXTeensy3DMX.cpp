@@ -348,6 +348,7 @@ void LXTeensyDMX::transmitComplete( void ) {
 		     _dmx_read_state = DMX_READ_STATE_IDLE;		// if not after controller message, wait for a break
 		  }										// signaling start of packet
 		  _rdm_task_mode = DMX_TASK_RECEIVE;
+		  _uart_hardware->uart_reg_ptr->C2 |= UART_C2_RIE;
 		  
 		} else if ( _dmx_state == DMX_STATE_BREAK ) {
 		  hardware_uart_set_baud_2s(_uart_hardware->uart_num, _uart_hardware->uart_reg_ptr, DMX_DATA_BAUD);
@@ -724,44 +725,35 @@ uint8_t LXTeensyDMX::sendRDMSetCommand(UID target, uint16_t pid, uint8_t* info, 
 	return rv;
 }
 
+
 // ***** protected member function ******
 
 void LXTeensyDMX::uartISR( void ) {
+  uint8_t status = _uart_hardware->uart_reg_ptr->S1;
   uint8_t incoming_byte = _uart_hardware->uart_reg_ptr->D;					// read buffer to clear interrupt flag (should go here or below?)
   
-  if ( _uart_hardware->uart_reg_ptr->S1 & UART_S1_FE ) {					// framing error
+  if ( status & UART_S1_FE ) {					// framing error
 		breakReceived(); 
 		return;										// do not call byteReceived if framing error
   }	
-  
-  /* experimental break detect for Teensy 3.6
-  if ( _uart_hardware->uart_reg_ptr->S2 & UART_S2_LBKDIF ) {					// break detect
-        _uart_hardware->uart_reg_ptr->S2 |= UART_S2_LBKDIF;                     // clear breakflag
-		breakReceived(); 
-		return;										// do not call byteReceived if break detected
-  }
-  */
 
-  if ( _uart_hardware->uart_reg_ptr->S1 & UART_S1_RDRF ) {					// receive register full
+  if ( status & UART_S1_RDRF ) {					// receive register full
 		byteReceived(incoming_byte);
   }			// receive register full
   
 
-  
-	
-
-	
 // ********************** send portion of isr
 
   uint8_t c = _uart_hardware->uart_reg_ptr->C2;
 
-  if ((c & UART_C2_TIE) && (_uart_hardware->uart_reg_ptr->S1 & UART_S1_TDRE)) {   // transmit empty
+  if ((c & UART_C2_TIE) && (status & UART_S1_TDRE)) {   // transmit empty
 	transmitEmpty();
 	return;
   }   		// transmit empty
 
-  if ((c & UART_C2_TCIE) && (_uart_hardware->uart_reg_ptr->S1 & UART_S1_TC)) {    // transmit complete
+  if ((c & UART_C2_TCIE) && (status & UART_S1_TC)) {    // transmit complete
 	transmitComplete();
+} else {
 	return;
   }				// transmit complete
 	  

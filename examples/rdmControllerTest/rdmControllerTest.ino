@@ -20,6 +20,16 @@
 #include <rdm/UID.h>
 #include <rdm/TOD.h>
 
+/* Teensy 4's pins are not 5v tolerant!
+ * One method of converting signal from a 5v powered MAX485 to 3.3v
+ * is to use a pullup resistor to 3.3v and a transistor
+ * to ground on the rx pin.  This inverts the signal so HIGH
+ * from the 485 turns on the transistor, pulling the rx pin LOW.
+ * Conversely, LOW from the 485 turns the transistor off and
+ * the pullup resistor to 3.3v makes the rx pin HIGH.
+ * An opto-isolator can be used similarly.
+ */
+uint8_t rx_polarity = RX_SIGNAL_NORMAL; // or RX_SIGNAL_INVERTED
 
 uint8_t testLevel = 0;
 uint8_t loopDivider = 0;
@@ -203,10 +213,13 @@ void setup() {
   Serial.begin(115200);
   Serial.print("setup... ");
   
-  pinMode(4, OUTPUT);            // used for testing
+  // pins used for testing library, unnecessary for this example
+  pinMode(4, OUTPUT);  
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);          
 
   pinMode(DIRECTION_PIN, OUTPUT);
-  Teensy3DMX.startRDM(DIRECTION_PIN, RDM_DIRECTION_OUTPUT, RX_SIGNAL_INVERTED);
+  Teensy3DMX.startRDM(DIRECTION_PIN, RDM_DIRECTION_OUTPUT, rx_polarity);
   Serial.println("setup complete");
 }
 

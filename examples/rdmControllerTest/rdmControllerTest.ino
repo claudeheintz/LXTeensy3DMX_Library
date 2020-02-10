@@ -3,7 +3,7 @@
     @file     rdmTest.ino
     @author   Claude Heintz
     @license  BSD (see LXTeensy3DMX LICENSE)
-    @copyright 2017 by Claude Heintz
+    @copyright 2017-2020 by Claude Heintz
 
         Test of LXTeensy3DMX RDM functions
         Changes output level of some DMX Addresses while building RDM
@@ -12,6 +12,7 @@
     @section  HISTORY
 
     v1.00 - First release
+    v1.1  - Clean up and add comments
 */
 /**************************************************************************/
 
@@ -21,8 +22,8 @@
 #include <rdm/TOD.h>
 
 /* Teensy 4's pins are not 5v tolerant!
- * One method of converting signal from a 5v powered MAX485 to 3.3v
- * is to use a pullup resistor to 3.3v and a transistor
+ * One method of converting signal from a 5v powered RS-485 transceiver
+ * to 3.3v is to use a pullup resistor to 3.3v and a transistor
  * to ground on the rx pin.  This inverts the signal so HIGH
  * from the 485 turns on the transistor, pulling the rx pin LOW.
  * Conversely, LOW from the 485 turns the transistor off and
@@ -30,6 +31,15 @@
  * An opto-isolator can be used similarly.
  */
 uint8_t rx_polarity = RX_SIGNAL_NORMAL; // or RX_SIGNAL_INVERTED
+
+/* RDM requires that the direction of the RS-485 transceiver
+ * is switched between tx and rx.  On a MAX485, the transmit
+ * enable and inverted receive enable pins are tied together
+ * and connected to the direction pin.
+ */
+#define DIRECTION_PIN 3
+
+//***************** sketch variables
 
 uint8_t testLevel = 0;
 uint8_t loopDivider = 0;
@@ -44,7 +54,6 @@ UID upper(0,0,0,0,0,0);
 UID mid(0,0,0,0,0,0);
 UID found(0,0,0,0,0,0);
 
-#define DIRECTION_PIN 3
 #define DISC_STATE_SEARCH 0
 #define DISC_STATE_TBL_CK 1
 uint8_t discovery_state = DISC_STATE_TBL_CK;

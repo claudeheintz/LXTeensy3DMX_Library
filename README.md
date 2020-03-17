@@ -17,3 +17,7 @@ DMX Driver for Teensy 3.x using Teensyduino
    Additional instances using UART1 and UART2 are available by using Teensy3DMX1 and Teensy3DMX2.
    
    LXTeensyDMX has been tested with Teensy 3.2 and 3.6
+   
+   
+   Support for Teensy4 is a separate project on GiHub:
+   https://github.com/claudeheintz/LXTeensy4DMX_Library
